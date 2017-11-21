@@ -4,6 +4,8 @@
 import urllib.error
 import urllib.request
 import pandas
+import MySQLdb
+
 
 class CsvAnalysis():
 
@@ -34,9 +36,10 @@ class CsvAnalysis():
             #self.food_cat = self.food_cat[~self.food_cat['product_name'].isnull()]
             self.food_cat.sort_values(by='categories_fr')
             
-            self.food_cat['subcategories'] = self.food_cat['categories_fr'].str.split(',').str.get(-1)
+            self.food_cat['categories_fr'] = self.food_cat['categories_fr'].str.split(',').str.get(-1)
             self.food_cat.sort_values(by='categories_fr')
-            
+            #self.food_cat['categories_fr'] = self.food_cat['subcategories']
+
             self.food_cat.to_csv('noob.tsv', sep='\t')
 
 
@@ -48,7 +51,7 @@ class CsvAnalysis():
 
     def find_categories_fr(self, category):
         mask = self.food_cat["main_category_fr"] == (category)
-        return self.food_cat[mask].sort_values('categories_fr')
+        return self.food_cat[mask]
 
 
     def data_analysis(self):
@@ -75,6 +78,7 @@ class CsvAnalysis():
         print(len(categories_chosen))
         print(type(categories_chosen))
         print(len(sugar_snack)+len(spread)+len( butter) +len(desert)+len(jam))
+
         """
         print('sugar_snack: ;' ,len(sugar_snack))
         print('spread: ', len(spread))     
@@ -82,11 +86,24 @@ class CsvAnalysis():
         print('desert: ', len(desert))
         print('jam: ', len(jam))
         """
+
         sugar_snack.to_csv('sugar_snack.tsv', sep='\t', encoding='utf-8')
         spread.to_csv('spread.tsv', sep='\t', encoding='utf-8')
         butter.to_csv('butter.tsv', sep='\t', encoding='utf-8')
         desert.to_csv('desert.tsv', sep='\t', encoding='utf-8')
-        jam.to_csv('jam.tsv', sep='\t', encoding='utf-8')
+        jam.to_csv('jam.tsv', sep='\t', encoding='utf-8')       
+
+
+
+class DataToMySql():
+
+    def __init__(self):
+        db = MySQLdb.connect(user="root", passwd="MyNewPass", db="OpenFoodFacts")
+        c=db.cursor()
+        c.execute("""SELECT category_name FROM categories""")
+        print(c.fetchall())
 
 csv = CsvAnalysis()
 csv.data_analysis()
+
+#d_sql = DataToMySql()
