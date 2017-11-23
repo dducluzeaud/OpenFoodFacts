@@ -5,26 +5,27 @@ import urllib.error
 import urllib.request
 import pandas
 import MySQLdb
-
+import records
+import unidecode 
 
 class CsvAnalysis():
 
     def __init__(self):
-        self.url = "http://fr.openfoodfacts.org/data/fr.openfoodfacts.org.products.csv"
-        self.file_name = 'data.csv'
+        self._url = "http://fr.openfoodfacts.org/data/fr.openfoodfacts.org.products.csv"
+        self._file_name = 'data.csv'
         # Column of interest
-        self.column = ['product_name', 'url', 'quantity','packaging', 'brands', 'origins', 'countries_fr',
+        self._column = ['product_name', 'url', 'quantity','packaging', 'brands', 'origins', 'countries_fr',
                         'allergens', 'traces_fr', 'additives_n','additives_fr',
                         'nutrition_grade_fr','categories_fr', 'main_category_fr']
 
         # Dataframe from pandas module
         try:
-            with open(self.file_name):
+            with open(self._file_name):
                 pass
         except FileNotFoundError:
             self.download_file()
         finally:
-            self.food_cat = pandas.read_csv(self.file_name, sep="\t", low_memory=False, usecols=self.column, encoding='utf-8')
+            self.food_cat = pandas.read_csv(self._file_name, sep="\t", low_memory=False, usecols=self._column, encoding='utf-8')
             # Remove countries which aren't France
             self.food_cat = self.food_cat[self.food_cat['countries_fr'] == 'France']
             del self.food_cat['countries_fr']
@@ -38,9 +39,6 @@ class CsvAnalysis():
             
             self.food_cat['categories_fr'] = self.food_cat['categories_fr'].str.split(',').str.get(-1)
             self.food_cat.sort_values(by='categories_fr')
-            #self.food_cat['categories_fr'] = self.food_cat['subcategories']
-
-            self.food_cat.to_csv('noob.tsv', sep='\t')
 
 
     def download_file(self):
@@ -51,59 +49,98 @@ class CsvAnalysis():
 
     def find_categories_fr(self, category):
         mask = self.food_cat["main_category_fr"] == (category)
-        return self.food_cat[mask]
+        return self.food_cat[mask].sort_values(by='categories_fr')
 
-
-    def data_analysis(self):
-        
-        """
-        categories_list = ['Snacks sucrés', 'Pâtes à tartiner', 'Beurres', 'Desserts', 'Confitures']
-        categories_chosen = []
-        for category in categories_list:
-            categories_chosen.append(self.find_categories_fr(category).drop_duplicates())
-
-        print(len(categories_chosen))
-        for category in categories_chosen:
-            print(category)
-        """
-
-        sugar_snack = self.find_categories_fr('Snacks sucrés')
-        spread = self.find_categories_fr("Pâtes à tartiner")
-        butter = self.find_categories_fr("Beurres")
-        desert = self.find_categories_fr("Desserts")
-        jam = self.find_categories_fr("Confitures")
-
-        categories_chosen = sugar_snack + spread + butter + desert + jam
-        categories_chosen.drop_duplicates()
-        print(len(categories_chosen))
-        print(type(categories_chosen))
-        print(len(sugar_snack)+len(spread)+len( butter) +len(desert)+len(jam))
-
-        """
-        print('sugar_snack: ;' ,len(sugar_snack))
-        print('spread: ', len(spread))     
-        print('butter: ', len(butter))    
-        print('desert: ', len(desert))
-        print('jam: ', len(jam))
-        """
-
-        sugar_snack.to_csv('sugar_snack.tsv', sep='\t', encoding='utf-8')
-        spread.to_csv('spread.tsv', sep='\t', encoding='utf-8')
-        butter.to_csv('butter.tsv', sep='\t', encoding='utf-8')
-        desert.to_csv('desert.tsv', sep='\t', encoding='utf-8')
-        jam.to_csv('jam.tsv', sep='\t', encoding='utf-8')       
-
+    def get_subcategories(self, category):
+        return category.categories_fr.unique()       
 
 
 class DataToMySql():
 
     def __init__(self):
-        db = MySQLdb.connect(user="root", passwd="MyNewPass", db="OpenFoodFacts")
-        c=db.cursor()
-        c.execute("""SELECT category_name FROM categories""")
-        print(c.fetchall())
+        self._db=records.Database('mysql+mysqldb://root:MyNewPass@localhost/OpenFoodFacts')
+        self._category_list = ['Snacks sucrés', 'Pâtes à tartiner', 'Beurres', 'Desserts', 'Confitures']
+        self._csv = CsvAnalysis()
 
-csv = CsvAnalysis()
-csv.data_analysis()
+    def load_categories_to_db(self):
+        for category in self._category_list:
+            self._db.query('INSERT INTO Categories(category_name) VALUES ("%s")' % (category))
 
-#d_sql = DataToMySql()
+    def load_subcategories_to_db(self):
+        for category in self._category_list:
+            categories_product = self._csv.find_categories_fr(category)
+            subcategories = self._csv.get_subcategories(categories_product)
+            for subcategory in subcategories:
+                self._db.query('INSERT INTO Subcategories (subcategory_name, category_id) VALUES (("%s"), (SELECT id_category from categories where category_name = "%s"))' % (subcategory, category ))
+
+    def load_products_to_db(self):
+        products = {}
+        for category in self._category_list:
+            categories_product = self._csv.find_categories_fr(category)
+
+            product_list = []
+            product_name = categories_product.product_name
+            for name in product_name:
+                product_list.append(name)
+
+            quantity_list = []
+            quantities = categories_product.quantity
+            for quantity in quantities:
+                quantity_list.append(quantity)
+                
+            url_list = []
+            urls = categories_product.url
+            for url in urls:
+                url_list.append(url)
+
+            packaging_list = []
+            packaging = categories_product.packaging
+            for package in packaging:
+                packaging_list.append(package)
+                    
+            brand_list = []
+            brands = categories_product.brands
+            for brand in brands:
+                brand_list.append(brand)
+
+            origin_list = []
+            origins = categories_product.origins
+            for origin in origins:
+                origin_list.append(origin)
+
+            allegerns_list = []
+            allegerns = categories_product.allergens
+            for allegern in allegerns:
+                allegerns_list.append(allegern)
+
+            traces_list = []
+            traces = categories_product.traces_fr
+            for trace in traces:
+                traces_list.append(trace)
+
+            additives_n_list = []
+            additives_n = categories_product.additives_n
+            for additive_n in additives_n:
+                additives_n_list.append(additive_n)
+
+            additive_list = []
+            additives = categories_product.additives_fr
+            for additive in additives:
+                additive_list.append(additive)
+
+            nutrition_score_list = []
+            nutrition_scores = categories_product.nutrition_grade_fr
+            for nutrition_score in nutrition_scores:
+                nutrition_score_list.append(nutrition_score)
+            
+            subcategory_product_list = []
+            subcategories = categories_product.categories_fr
+            for subcategory in subcategories:
+                subcategory_product_list.append(subcategory)
+
+            index = 0
+            for _ in product_list:
+                self._db.query('INSERT INTO Product (product_name, quantity, url_text, packaging, brand, origin, allegerns, traces, additives_number, additives, nutrition_score, category_id, subcategory_id) VALUES ("%s", "%s", "%s", "%s", "%s", "%s", "%s", "%s", "%s", "%s", "%s", (SELECT id_category FROM categories WHERE category_name = "%s"), (SELECT id_subcategory FROM subcategories WHERE id_subcategory = "%s"))' % (product_list[index] ,quantity_list[index] ,url_list[index] ,packaging_list[index] ,brand_list[index] ,origin_list[index] ,allegerns_list[index] ,traces_list[index] ,additives_n_list[index] ,additive_list[index] ,nutrition_score_list[index], category, subcategory_product_list[index]))
+                index += 1
+
+                
