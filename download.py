@@ -6,7 +6,6 @@ import urllib.request
 import pandas
 import MySQLdb
 import records
-import unidecode 
 
 class CsvAnalysis():
 
