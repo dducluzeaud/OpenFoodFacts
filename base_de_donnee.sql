@@ -19,7 +19,7 @@ DROP TABLE IF EXISTS Product;
 CREATE TABLE Product (
     id_product SMALLINT(5) UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     product_name VARCHAR(255),
-    quantity VARCHAR(255), 
+    quantity VARCHAR(255),
     url_text VARCHAR(255),
     packaging VARCHAR(255),
     brand VARCHAR(255),
@@ -53,11 +53,11 @@ CREATE TABLE Subcategories(
 )engine=InnoDB
 DEFAULT CHARACTER SET = utf8;
 
+SELECT * from product INNER JOIN categories on categories.id_category = product.category_id INNER JOIN subcategories ON subcategories.category_id=categories.id_category;
+
 
 DROP TABLE Product;
 DROP TABLE Replaced_product;
 DROP TABLE Subcategory:
 DROP TABLE Nutrition_data;
 DROP TABLE Categories;
-
-

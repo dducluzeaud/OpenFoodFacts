@@ -2,3 +2,5 @@
 *.csv
 .vscode
 .DS_STORE
+.git
+__pycache__

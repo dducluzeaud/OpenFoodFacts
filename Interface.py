@@ -20,18 +20,16 @@ class Data():
     def select_products(self, subcategory):
         products = self._db.query('SELECT product_name from product INNER JOIN categories on categories.id_category = product.category_id INNER JOIN subcategories ON subcategories.category_id=categories.id_category WHERE subcategory_name = "%s"' % (subcategory))
         products_index = self.index_items(products)
-        for key, value in products_index.items():
-            print(key, value)
         return products_index
 
     def select_substitutes(self, subcategory, product_name):
         substitutes = self._db.query('SELECT product_name, brand, url_text from product INNER JOIN categories on categories.id_category = product.category_id INNER JOIN subcategories ON subcategories.category_id=categories.id_category WHERE subcategory_name = "%s" AND product_name != "%s" ORDER BY nutrition_score ASC' % (subcategory, product_name))
 
-        product_att = []
+        product_col = []
         products_att = []
         for value in substitutes:
-            product_att = [value.product_name, value.brand, value.url_text]
-            products_att.append(desc)
+            product_col = [value.product_name, value.brand, value.url_text]
+            products_att.append(product_col)
 
         index = {}
         number = 1
@@ -76,15 +74,13 @@ class UserChoice():
             if key == number:
                 self._chosen_category = value
                 break
-        return self._chosen_category
-
+            
     def choose_subcategory(self, number):
         dic = self._dt.select_subcategories(self._chosen_category)
         for key, value in dic.items():
             if key == number:
                 self._chosen_subcategory = value
                 break
-        return self._chosen_subcategory
 
     def choose_product(self, number):
         dic = self._dt.select_products(self._chosen_subcategory)
@@ -92,7 +88,6 @@ class UserChoice():
             if key == number:
                 self._chosen_product = value
                 break
-        return self._chosen_product
 
     def choose_subsitute(self, number):
         chosen_substitue = ""
@@ -103,9 +98,3 @@ class UserChoice():
             if key == number:
                 chosen_substitue = value
                 break
-        return chosen_substitue
-
-
-
-dt = Data()
-dt.select_substitutes('Pâtes à tartiner au caramel', 12253)
