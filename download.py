@@ -6,6 +6,7 @@ import urllib.request
 import pandas
 import MySQLdb
 import records
+import os
 
 class CsvAnalysis():
 
@@ -39,6 +40,8 @@ class CsvAnalysis():
             self.food_cat['categories_fr'] = self.food_cat['categories_fr'].str.split(',').str.get(-1)
             self.food_cat.sort_values(by='categories_fr')
 
+            if self.food_cat is not None:
+                os.remove(self._file_name)
 
     def download_file(self):
         try:
