@@ -1,20 +1,26 @@
-DROP TABLE IF EXISTS categories;
+DROP DATABASE IF EXISTS OpenFoodFacts ; 
+CREATE DATABASE OpenFoodFacts ;
+USE OpenFoodFacts ;
+
+SET NAMES utf8;
+
+DROP TABLE IF EXISTS Product;
+DROP TABLE IF EXISTS Replaced_product;
+DROP TABLE IF EXISTS Subcategories:
+DROP TABLE IF EXISTS Nutrition_data;
+DROP TABLE IF EXISTS Categories;
 
 CREATE TABLE Categories (
     id_category SMALLINT(5) UNSIGNED PRIMARY KEY AUTO_INCREMENT ,
-    category_name VARCHAR(20) NOT NULL
+    category_name VARCHAR(255) NOT NULL
 )engine=InnoDB
 DEFAULT CHARACTER SET = utf8;
-
-DROP TABLE IF EXISTS Replaced_product;
 
 CREATE TABLE Replaced_product(
     id_product_replaced SMALLINT(5) UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    product_name_replaced VARCHAR(20)
+    product_name_replaced VARCHAR(255)
 )engine=InnoDB
 DEFAULT CHARACTER SET = utf8;
-
-DROP TABLE IF EXISTS Product;
 
 CREATE TABLE Product (
     id_product SMALLINT(5) UNSIGNED AUTO_INCREMENT PRIMARY KEY,
@@ -39,8 +45,6 @@ CREATE TABLE Product (
 )engine=InnoDb
 DEFAULT CHARACTER SET = utf8;
 
-DROP TABLE IF EXISTS Subcategory;
-
 CREATE TABLE Subcategories(
     id_subcategory SMALLINT(5) UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     subcategory_name VARCHAR(40),
@@ -51,13 +55,8 @@ CREATE TABLE Subcategories(
     CONSTRAINT fk_subcategory_id FOREIGN KEY(category_id) REFERENCES Categories(id_category),
     CONSTRAINT fk_product_id FOREIGN KEY(product_id) REFERENCES Product(id_product)
 )engine=InnoDB
-DEFAULT CHARACTER SET = utf8;
-
-SELECT * from product INNER JOIN categories on categories.id_category = product.category_id INNER JOIN subcategories ON subcategories.category_id=categories.id_category;
+DEFAULT CHARACTER SET=utf8;
 
 
-DROP TABLE Product;
-DROP TABLE Replaced_product;
-DROP TABLE Subcategory:
-DROP TABLE Nutrition_data;
-DROP TABLE Categories;
+
+
