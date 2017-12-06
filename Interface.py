@@ -1,35 +1,49 @@
 import records
+from download import DataToMySql
 
-
-class Data():
+class Data:
 
     def __init__(self):
         _connect = 'mysql+mysqldb://root:MyNewPass@localhost/OpenFoodFacts'
         self._db = records.Database(_connect)
 
-    def select_categories(self, nb_element=25, page=1):
-        page_number = nb_element * page
-        categories = self._db.query('SELECT category_name FROM categories LIMIT %i' % (page_number))
+    def select_categories(self, page=1, nb_element=10):
+        first_element = (nb_element  * (page - 1))
+        query = 'SELECT category_name FROM categories '
+        query += 'LIMIT %i OFFSET %i'
+        categories = self._db.query(query  % (nb_element, first_element))
         categories_list = self.list_items(categories)
         return categories_list
 
-    def select_subcategories(self, category, nb_element=25, page=1):
-        page_number = nb_element * page
-        subcategories = self._db.query('SELECT subcategory_name FROM subcategories INNER JOIN categories ON subcategories.category_id = categories.id_category WHERE category_name = "%s" LIMIT %i' % (category, page_number))
+    def select_subcategories(self, category, page=1, nb_element=10):
+        first_element = (nb_element * (page - 1))
+        query = 'SELECT subcategory_name FROM subcategories AS s '
+        query += 'INNER JOIN categories AS c ON s.category_id = c.id_category '
+        query += 'WHERE category_name = "%s" LIMIT %i OFFSET %i'
+        subcategories = self._db.query(query % (category, nb_element, first_element))
         subcategories_list = self.list_items(subcategories)
         return subcategories_list
 
-    def select_products(self, subcategory, nb_element=25, page=1):
-        page_number = nb_element * page
-        products = self._db.query('SELECT product_name from product INNER JOIN categories on categories.id_category = product.category_id INNER JOIN subcategories ON subcategories.category_id=categories.id_category WHERE subcategory_name = "%s" LIMIT %i' % (subcategory, page_number))
+    def select_products(self, subcategory, page=1, nb_element=10):
+        first_element = (nb_element * (page - 1))
+        query = 'SELECT product_name from product AS p '
+        query += 'INNER JOIN categories AS c on c.id_category = p.category_id '
+        query += 'INNER JOIN subcategories AS s ON s.category_id= c.id_category '
+        query += 'WHERE subcategory_name = "%s" LIMIT %i OFFSET %i'
+        products = self._db.query(query % (subcategory, nb_element, first_element))
         products_list = self.list_items(products)
         return products_list
 
-    def select_substitutes(self, subcategory, product_name, nb_element=25, page=1):
-        page_number = nb_element * page
-        substitutes = self._db.query('SELECT product_name, brand, url_text from product INNER JOIN categories on categories.id_category = product.category_id INNER JOIN subcategories ON subcategories.category_id=categories.id_category WHERE subcategory_name = "%s" AND product_name != "%s" ORDER BY nutrition_score ASC LIMIT %i' % (subcategory, product_name, page_number)) 
+    def select_substitutes(self, subcategory, product_name,  page=1, nb_element=10):
+        first_element = (nb_element * (page - 1))
+        query = 'SELECT product_name, brand, url_text FROM product AS p '
+        query += 'INNER JOIN categories AS c on c.id_category = p.category_id'
+        query += 'INNER JOIN subcategories AS s ON s.category_id= c.id_category'
+        query += 'WHERE subcategory_name = "%s" AND product_name != "%s" ORDER BY nutrition_score'
+        query += 'ASC LIMIT %i OFFSET %i'
+        substitutes = self._db.query(query % (subcategory, nb_element, first_element))
         return substitutes
-        
+
     def list_items(self, items):
         list = []
         for value in items:
@@ -37,12 +51,14 @@ class Data():
         return list
 
     def add_substitute(self, substitute, product):
+        insert = ''
         self._db.query('INSERT INTO Replaced_product(product_name_replaced) VALUES ("%s")' % (substitute))
         self._db.query('UPDATE Product SET product_name_replaced_id = (SELECT id_product_replaced FROM Replaced_product WHERE product_name_replaced="%s") WHERE product_name="%s"' % (substitute, product))
 
     def update_database(self):
-        
-class UserChoice():
+        insert_into_db()
+
+class UserChoice:
 
     def __init__(self):
         self._dt = Data()
@@ -74,7 +90,7 @@ class UserChoice():
             if key == number:
                 self._chosen_category = value
                 break
-            
+
     def choose_subcategory(self, number):
         sub_list = self._dt.select_subcategories(self._chosen_category)
         for key, value in enumerate(sub_list, start=1):
@@ -97,6 +113,3 @@ class UserChoice():
             if key == number:
                 self._chosen_substitute = value.product_name
                 break
-
-user = UserChoice()
-user.choose_subsitute(1)

@@ -38,9 +38,7 @@ CREATE TABLE Product (
     category_id SMALLINT(5) UNSIGNED,
     product_name_replaced_id SMALLINT(5) UNSIGNED,
     subcategory_id SMALLINT(5) UNSIGNED,
-    KEY fk_category_id (category_id),
     KEY fk_replaced_product_id (product_name_replaced_id),
-    CONSTRAINT fk_category_id FOREIGN KEY (category_id) REFERENCES Categories (id_category),
     CONSTRAINT fk_replaced_product_id FOREIGN KEY (product_name_replaced_id) REFERENCES Replaced_product(id_product_replaced)
 )engine=InnoDb
 DEFAULT CHARACTER SET = utf8;

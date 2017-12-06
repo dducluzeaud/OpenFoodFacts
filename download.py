@@ -4,18 +4,18 @@
 import urllib.error
 import urllib.request
 import pandas
-import MySQLdb
 import records
 import os
 
-class CsvAnalysis():
+
+class CsvAnalysis:
 
     def __init__(self):
         self._url = "http://fr.openfoodfacts.org/data/fr.openfoodfacts.org.products.csv"
         self._file_name = 'data.csv'
         # Column of interest
-        self._column = ['product_name', 'url', 'quantity','packaging', 'brands', 'origins', 'countries_fr',
-                        'allergens', 'traces_fr', 'additives_n','additives_fr',
+        self._column = ['product_name', 'url', 'quantity','packaging', 'brands', 'origins',
+                        'countries_fr','allergens', 'traces_fr', 'additives_n','additives_fr',
                         'nutrition_grade_fr','categories_fr', 'main_category_fr']
 
         # Dataframe from pandas module
@@ -36,7 +36,7 @@ class CsvAnalysis():
             # Remove empty row from product_name
             #self.food_cat = self.food_cat[~self.food_cat['product_name'].isnull()]
             self.food_cat.sort_values(by='categories_fr')
-            
+
             self.food_cat['categories_fr'] = self.food_cat['categories_fr'].str.split(',').str.get(-1)
             self.food_cat.sort_values(by='categories_fr')
 
@@ -45,7 +45,7 @@ class CsvAnalysis():
 
     def download_file(self):
         try:
-            urllib.request.urlretrieve(self.url, self.file_name)
+            urllib.request.urlretrieve(self._url, self._file_name)
         except urllib.error.URLError:
             print('Wrong url')
 
@@ -54,29 +54,32 @@ class CsvAnalysis():
         return self.food_cat[mask].sort_values(by='categories_fr')
 
     def get_subcategories(self, category):
-        return category.categories_fr.unique()       
+        return category.categories_fr.unique()
 
 
-class DataToMySql():
+class DataToMySql:
 
     def __init__(self):
-        self._db=records.Database('mysql+mysqldb://root:MyNewPass@localhost/OpenFoodFacts')
+        url = 'mysql+mysqldb://root:MyNewPass@localhost/OpenFoodFacts'
+        self._db = records.Database(url)
         self._category_list = ['Snacks sucrés', 'Pâtes à tartiner', 'Beurres', 'Desserts', 'Confitures']
         self._csv = CsvAnalysis()
 
-    def load_categories_to_db(self):
+    def __load_categories_to_db(self):
         for category in self._category_list:
-            self._db.query('INSERT INTO Categories(category_name) VALUES ("%s")' % (category))
+            self._db.query('INSERT INTO Categories(category_name) VALUES ("%s")' % category)
 
-    def load_subcategories_to_db(self):
+    def __load_subcategories_to_db(self):
         for category in self._category_list:
             categories_product = self._csv.find_categories_fr(category)
             subcategories = self._csv.get_subcategories(categories_product)
+            query = 'INSERT INTO Subcategories (subcategory_name, category_id)'
+            query += 'VALUES ("%s", (SELECT id_category from categories WHERE category_name = "%s")'
             for subcategory in subcategories:
-                self._db.query('INSERT INTO Subcategories (subcategory_name, category_id) VALUES (("%s"), (SELECT id_category from categories where category_name = "%s"))' % (subcategory, category ))
+                self._db.query(query % (subcategory, category))
 
-    def load_products_to_db(self):
-        products = {}
+    def __load_products_to_db(self):
+
         for category in self._category_list:
             categories_product = self._csv.find_categories_fr(category)
 
@@ -89,7 +92,7 @@ class DataToMySql():
             quantities = categories_product.quantity
             for quantity in quantities:
                 quantity_list.append(quantity)
-                
+
             url_list = []
             urls = categories_product.url
             for url in urls:
@@ -99,7 +102,7 @@ class DataToMySql():
             packaging = categories_product.packaging
             for package in packaging:
                 packaging_list.append(package)
-                    
+
             brand_list = []
             brands = categories_product.brands
             for brand in brands:
@@ -134,7 +137,7 @@ class DataToMySql():
             nutrition_scores = categories_product.nutrition_grade_fr
             for nutrition_score in nutrition_scores:
                 nutrition_score_list.append(nutrition_score)
-            
+
             subcategory_product_list = []
             subcategories = categories_product.categories_fr
             for subcategory in subcategories:
@@ -142,7 +145,20 @@ class DataToMySql():
 
             index = 0
             for _ in product_list:
-                self._db.query('INSERT INTO Product (product_name, quantity, url_text, packaging, brand, origin, allegerns, traces, additives_number, additives, nutrition_score, category_id, subcategory_id) VALUES ("%s", "%s", "%s", "%s", "%s", "%s", "%s", "%s", "%s", "%s", "%s", (SELECT id_category FROM categories WHERE category_name = "%s"), (SELECT id_subcategory FROM subcategories WHERE id_subcategory = "%s"))' % (product_list[index] ,quantity_list[index] ,url_list[index] ,packaging_list[index] ,brand_list[index] ,origin_list[index] ,allegerns_list[index] ,traces_list[index] ,additives_n_list[index] ,additive_list[index] ,nutrition_score_list[index], category, subcategory_product_list[index]))
+                query = 'INSERT INTO Product (product_name, quantity, url_text, packaging,'
+                query += 'brand, origin, allegerns, traces, additives_number, additives,'
+                query += 'nutrition_score, category_id, subcategory_id) VALUES ("%s", "%s", "%s"'
+                query += ', "%s", "%s", "%s", "%s", "%s", "%s", "%s", "%s",'
+                query += '(SELECT id_category FROM categories WHERE category_name = "%s"),'
+                query += '(SELECT id_subcategory FROM subcategories WHERE id_subcategory = "%s")'
+                self._db.query(qyery % (product_list[index] ,quantity_list[index] ,url_list[index]
+                ,packaging_list[index] ,brand_list[index] ,origin_list[index],allegerns_list[index]
+                ,traces_list[index] ,additives_n_list[index],additive_list[index]
+                ,nutrition_score_list[index],category, subcategory_product_list[index]))
                 index += 1
 
-                
+    @classmethod
+    def insert_into_db(self):
+        self.__load_categories_to_db()
+        self.__load_subcategories_to_db()
+        self.__load_products_to_db()
