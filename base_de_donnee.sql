@@ -1,22 +1,20 @@
-DROP TABLE Subcategory:
-DROP TABLE Product;
-DROP TABLE Replaced_product;
-DROP TABLE Categories;
-
-
+DROP TABLE IF EXISTS Subcategory:
+DROP TABLE IF EXISTS Product;
+DROP TABLE IF EXISTS replacement_product;
+DROP TABLE IF EXISTS Categories;
 DROP TABLE IF EXISTS categories;
 
 CREATE TABLE Categories (
     id_category SMALLINT(5) UNSIGNED PRIMARY KEY AUTO_INCREMENT ,
-    category_name VARCHAR(20) NOT NULL
+    category_name VARCHAR(255) NOT NULL
 )engine=InnoDB
 DEFAULT CHARACTER SET = utf8;
 
-DROP TABLE IF EXISTS Replaced_product;
+DROP TABLE IF EXISTS replacement_product;
 
-CREATE TABLE Replaced_product(
-    id_product_replaced SMALLINT(5) UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    product_name_replaced VARCHAR(20)
+CREATE TABLE Replacement_product(
+    id_product_replacement SMALLINT(5) UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    product_name_replacement VARCHAR(255)
 )engine=InnoDB
 DEFAULT CHARACTER SET = utf8;
 
@@ -25,24 +23,21 @@ DROP TABLE IF EXISTS Product;
 
 CREATE TABLE Product (
     id_product SMALLINT(5) UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    product_name VARCHAR(25),
-    quantity VARCHAR(8), 
-    url_text VARCHAR(100),
-    packaging VARCHAR(40),
-    brand VARCHAR(20),
-    origin VARCHAR(20),
-    allegerns VARCHAR(25),
-    traces VARCHAR(40),
+    product_name VARCHAR(255),
+    quantity VARCHAR(255), 
+    url_text VARCHAR(255),
+    packaging VARCHAR(255),
+    brand VARCHAR(255),
+    origin VARCHAR(255),
+    allegerns VARCHAR(255),
+    traces VARCHAR(255),
     additives_number TINYINT UNSIGNED,
-    additives VARCHAR(50),
+    additives VARCHAR(255),
     nutrition_score CHAR(1),
-    category_id SMALLINT(5) UNSIGNED,
-    product_name_replaced_id SMALLINT(5) UNSIGNED,
+    product_name_replacement_id SMALLINT(5) UNSIGNED,
     subcategory_id SMALLINT(5) UNSIGNED,
-    KEY fk_category_id (category_id),
-    KEY fk_replaced_product_id (product_name_replaced_id),
-    CONSTRAINT fk_category_id FOREIGN KEY (category_id) REFERENCES Categories (id_category),
-    CONSTRAINT fk_replaced_product_id FOREIGN KEY (product_name_replaced_id) REFERENCES Replaced_product(id_product_replaced)
+    KEY fk_replacement_product_id (product_name_replacement_id),
+    CONSTRAINT fk_replacement_product_id FOREIGN KEY (product_name_replacement_id) REFERENCES replacement_product(id_product_replacement)
 )engine=InnoDb
 DEFAULT CHARACTER SET = utf8;
 
@@ -50,7 +45,7 @@ DROP TABLE IF EXISTS Subcategory;
 
 CREATE TABLE Subcategories(
     id_subcategory SMALLINT(5) UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    subcategory_name VARCHAR(20),
+    subcategory_name VARCHAR(255),
     category_id SMALLINT(5) UNSIGNED,
     product_id SMALLINT(5) UNSIGNED,
     KEY fk_subcategory_id(category_id),
