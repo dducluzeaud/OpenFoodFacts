@@ -27,7 +27,7 @@ class CsvAnalysis:
             with open(self._file_name):
                 pass
         except FileNotFoundError:
-            self.download_file()
+            self.__download_file()
         finally:
             # Read the csv file, and create a dataframe
             self.food_cat = pandas.read_csv(self._file_name,
@@ -60,7 +60,7 @@ class CsvAnalysis:
             if self.food_cat is not None:
                 os.remove(self._file_name)
 
-    def download_file(self):
+    def __download_file(self):
         try:
             urllib.request.urlretrieve(self._url, self._file_name)
         except urllib.error.URLError:
@@ -90,24 +90,21 @@ class DataToMySql(metaclass=Singleton):
         self._category_list += [ 'Beurres', 'Desserts', 'Confitures']
         self._csv = CsvAnalysis()
 
-    def __load_categories_to_db(self):
-        self._db.query('LOCK TABLES Categories')
+
+    def _load_categories_to_db(self):
         for category in self._category_list:
             self._db.query('INSERT INTO Categories(category_name) VALUES ("%s")' % category)
-        self._db.query('UNLOCK TABLES')
-        
-    def __load_subcategories_to_db(self):
-        self._db.query('LOCK TABLES subcategories')
+      
+    def _load_subcategories_to_db(self):
         for category in self._category_list:
             categories_product = self._csv.find_categories_fr(category)
             subcategories = self._csv.get_subcategories(categories_product)
-            query = 'INSERT INTO Subcategories (subcategory_name, category_id)'
-            query += 'VALUES ("%s", (SELECT id_category from categories WHERE category_name = "%s")'
+            query = 'INSERT INTO Subcategories(subcategory_name, category_id) '
+            query += 'VALUES ("%s", (SELECT id_category from categories WHERE category_name = "%s"))'
             for subcategory in subcategories:
                 self._db.query(query % (subcategory, category))
-        self._db.query('UNLOCK Tables')
 
-    def __load_products_to_db(self):
+    def _load_products_to_db(self):
 
         for category in self._category_list:
             categories_product = self._csv.find_categories_fr(category)
@@ -172,30 +169,36 @@ class DataToMySql(metaclass=Singleton):
             for subcategory in subcategories:
                 subcategory_product_list.append(subcategory)
 
-            self._db.query('LOCK TABLES Product WRITE')
+
             ind = 0
             for _ in product_list:
                 query = 'INSERT INTO Product'
                 query += '(product_name, quantity, url_text, packaging,'
                 query += 'brand, origin, allegerns, traces, additives_number, '
-                query += 'additives,nutrition_score, category_id,'
-                query += 'subcategory_id) VALUES ("%s", "%s", "%s"'
-                query += ', "%s", "%s", "%s", "%s", "%s", "%s", "%s", "%s",'
-                query += '(SELECT id_category FROM categories'
-                query += 'WHERE category_name = "%s"),'
+                query += 'additives,nutrition_score, subcategory_id) '
+                query += 'VALUES ("%s", "%s", "%s", "%s", "%s", "%s", "%s",'
+                query += ' "%s", "%s", "%s", "%s",'
                 query += '(SELECT id_subcategory FROM subcategories'
-                query += ' WHERE id_subcategory = "%s")'
+                query += ' WHERE id_subcategory = "%s"))'
                 self._db.query(query % (product_list[ind] ,quantity_list[ind] ,url_list[ind]
                 ,packaging_list[ind] ,brand_list[ind] ,origin_list[ind],allegerns_list[ind]
                 ,traces_list[ind] ,additives_n_list[ind],additive_list[ind]
-                ,nutrition_score_list[ind],category, subcategory_product_list[ind]))
+                ,nutrition_score_list[ind], subcategory_product_list[ind]))
                 ind += 1
-            self._db.query('UNLOCK TABLES')
+
 
 
     def insert_into_db(self):
-        self.__load_categories_to_db()
-        self.__load_subcategories_to_db()
-        self.__load_products_to_db()
+        self._db.query('START TRANSACTION')
+        try:
+            self._load_categories_to_db()
+            self._load_subcategories_to_db()
+            self._load_products_to_db()
+        except:
+            print('sqlerror')
+            self._db.query('ROLLBACK')
+        else:
+            self._db.query('COMMIT')
 
-c = CsvAnalysis()
+db = DataToMySql()
+db._load_products_to_db()
