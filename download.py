@@ -12,7 +12,8 @@ class CsvAnalysis:
     """ Analysis the csv with pandas dataframe. """
 
     def __init__(self):
-        self._url = "http://fr.openfoodfacts.org/data/fr.openfoodfacts.org.products.csv"
+        self._url = "http://fr.openfoodfacts.org"
+        self._url += "/data/fr.openfoodfacts.org.products.csv"
         self._file_name = 'data.csv'
 
         # Column of interest
@@ -22,64 +23,62 @@ class CsvAnalysis:
         self._col += ['nutrition_grade_fr', 'categories_fr']
         self._col += ['main_category_fr']
 
-        try:
-            # Look if the file is in the directory
-            with open(self._file_name):
-                pass
-        except FileNotFoundError:
-            self.__download_file()
-        finally:
-            # Read the csv file, and create a dataframe
-            self.food_cat = pandas.read_csv(self._file_name,
-                                            sep="\t",
-                                            low_memory=False,
-                                            usecols=self._col,
-                                            encoding='utf-8')
+        # Download csv file
+        self._download_file()
 
-            # Remove countries which aren't France
-            mask = self.food_cat['countries_fr']
-            self.food_cat = self.food_cat[mask == 'France']
+        # Read the csv file, and create a dataframe
+        self.food_cat = pandas.read_csv(self._file_name,
+                                        sep="\t",
+                                        low_memory=False,
+                                        usecols=self._col,
+                                        encoding='utf-8')
 
-            # Delete column countries_fr
-            del self.food_cat['countries_fr']
+        # Remove countries which aren't France
+        mask = self.food_cat['countries_fr']
+        self.food_cat = self.food_cat[mask == 'France']
 
-            # Remove empty row countries_fr from dataframe
-            columns = ['main_category_fr', 'product_name', 'nutrition_grade_fr']
-            for column in columns:
-                self.food_cat = self.food_cat[~self.food_cat[column].isnull()]
+        # Delete column countries_fr
+        del self.food_cat['countries_fr']
 
-            # Remove empty row from product_name
-            self.food_cat.sort_values(by='categories_fr')
+        # Remove empty row countries_fr from dataframe
+        columns = ['main_category_fr', 'product_name', 'nutrition_grade_fr']
+        for column in columns:
+            self.food_cat = self.food_cat[~self.food_cat[column].isnull()]
 
-            # Select the last value from categories_fr to use it as a subcategory
-            col = 'categories_fr'
-            self.food_cat[col] = self.food_cat[col].str.split(',').str.get(-1)
-            self.food_cat.sort_values(by='categories_fr')
+        # Remove empty row from product_name
+        self.food_cat.sort_values(by='categories_fr')
 
-            # Once the dataframe is created, remove the csv file
-            if self.food_cat is not None:
-                os.remove(self._file_name)
+        # Select the last value from categories_fr to use it as a subcategory
+        col = 'categories_fr'
+        self.food_cat[col] = self.food_cat[col].str.split(',').str.get(-1)
+        self.food_cat.sort_values(by='categories_fr')
 
-    def __download_file(self):
+        # Once the dataframe is created, remove the csv file
+        if self.food_cat is not None:
+            os.remove(self._file_name)
+
+    def _download_file(self):
         try:
             urllib.request.urlretrieve(self._url, self._file_name)
         except urllib.error.URLError:
             print('Wrong url')
 
     def find_categories_fr(self, category):
-        mask = self.food_cat["main_category_fr"] == (category)
-        return self.food_cat[mask].sort_values(by='categories_fr')
+        return self.food_cat[self.food_cat["main_category_fr"] == (category)].sort_values(by='categories_fr')
 
     def get_subcategories(self, category):
         return category.categories_fr.unique()
 
+
 class Singleton(type):
     """ Create a singleton"""
     _instances = {}
+
     def __call__(cls, *args, **kwargs):
         if cls not in cls._instances:
             cls._instances[cls] = super(Singleton, cls).__call__(*args, **kwargs)
         return cls._instances[cls]
+
 
 class DataToMySql(metaclass=Singleton):
     """ Insert the value from the dataframe to database"""
@@ -87,27 +86,28 @@ class DataToMySql(metaclass=Singleton):
         url = 'mysql+mysqldb://root:MyNewPass@localhost/OpenFoodFacts'
         self._db = records.Database(url)
         self._category_list = ['Snacks sucrés', 'Pâtes à tartiner']
-        self._category_list += [ 'Beurres', 'Desserts', 'Confitures']
-        self._csv = CsvAnalysis()
-
+        self._category_list += ['Beurres', 'Desserts', 'Confitures']
 
     def _load_categories_to_db(self):
         for category in self._category_list:
-            self._db.query('INSERT INTO Categories(category_name) VALUES ("%s")' % category)
+            sql = 'INSERT INTO Categories(category_name) VALUES ("%s")'
+            self._db.query(sql % category)
       
     def _load_subcategories_to_db(self):
+        csv = CsvAnalysis()
         for category in self._category_list:
-            categories_product = self._csv.find_categories_fr(category)
-            subcategories = self._csv.get_subcategories(categories_product)
-            query = 'INSERT INTO Subcategories(subcategory_name, category_id) '
-            query += 'VALUES ("%s", (SELECT id_category from categories WHERE category_name = "%s"))'
+            categories_product = csv.find_categories_fr(category)
+            subcategories = csv.get_subcategories(categories_product)
+            sql = 'INSERT INTO Subcategories(subcategory_name, category_id) '
+            sql += 'VALUES ("%s", (SELECT id_category '
+            sql += 'FROM categories WHERE category_name = "%s"))'
             for subcategory in subcategories:
-                self._db.query(query % (subcategory, category))
+                self._db.query(sql % (subcategory, category))
 
     def _load_products_to_db(self):
-
+        csv = CsvAnalysis()
         for category in self._category_list:
-            categories_product = self._csv.find_categories_fr(category)
+            categories_product = csv.find_categories_fr(category)
 
             product_list = []
             product_name = categories_product.product_name
@@ -172,33 +172,21 @@ class DataToMySql(metaclass=Singleton):
 
             ind = 0
             for _ in product_list:
-                query = 'INSERT INTO Product'
-                query += '(product_name, quantity, url_text, packaging,'
-                query += 'brand, origin, allegerns, traces, additives_number, '
-                query += 'additives,nutrition_score, subcategory_id) '
-                query += 'VALUES ("%s", "%s", "%s", "%s", "%s", "%s", "%s",'
-                query += ' "%s", "%s", "%s", "%s",'
-                query += '(SELECT id_subcategory FROM subcategories'
-                query += ' WHERE id_subcategory = "%s"))'
-                self._db.query(query % (product_list[ind] ,quantity_list[ind] ,url_list[ind]
-                ,packaging_list[ind] ,brand_list[ind] ,origin_list[ind],allegerns_list[ind]
-                ,traces_list[ind] ,additives_n_list[ind],additive_list[ind]
-                ,nutrition_score_list[ind], subcategory_product_list[ind]))
+                sql = 'INSERT INTO Products'
+                sql += '(product_name, quantity, url_text, packaging,'
+                sql += 'brand, origin, allegerns, traces, additives_number, '
+                sql += 'additives,nutrition_score, subcategory_id) '
+                sql += 'VALUES ("%s", "%s", "%s", "%s", "%s", "%s", "%s",'
+                sql += ' "%s", "%s", "%s", "%s",'
+                sql += '(SELECT id_subcategory FROM subcategories'
+                sql += ' WHERE subcategory_name = "%s"))'
+                self._db.query(sql % (product_list[ind], quantity_list[ind], url_list[ind]
+                , packaging_list[ind], brand_list[ind], origin_list[ind], allegerns_list[ind]
+                , traces_list[ind], additives_n_list[ind], additive_list[ind]
+                , nutrition_score_list[ind], subcategory_product_list[ind]))
                 ind += 1
 
-
-
     def insert_into_db(self):
-        self._db.query('START TRANSACTION')
-        try:
-            self._load_categories_to_db()
-            self._load_subcategories_to_db()
-            self._load_products_to_db()
-        except:
-            print('sqlerror')
-            self._db.query('ROLLBACK')
-        else:
-            self._db.query('COMMIT')
-
-db = DataToMySql()
-db._load_products_to_db()
+        self._load_categories_to_db()
+        self._load_subcategories_to_db()
+        self._load_products_to_db()
