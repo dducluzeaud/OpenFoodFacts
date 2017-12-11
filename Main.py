@@ -1,6 +1,8 @@
-#!/usr/bin/env python
+#!/usr/local/bin/python3 
 # coding: utf-8
+
 from Interface import UserChoice, Data
+
 
 class Interface:
 
@@ -10,15 +12,7 @@ class Interface:
 
     def display_category_list(self, page=1):
         categories = self._data.select_categories()
-        choice = self.display_form('Categories', categories, page)
-        if choice == 'n':
-            page += 1
-            self.display_category_list(page)
-        elif choice == 'b' and page > 1:
-            page -= 1
-            self.display_category_list(page)
-        else:
-            return choice
+        return self.display_form('Categories', categories, page)
 
     def display_subcategory_list(self, page=1):
         category = self._user.chosen_category
@@ -46,7 +40,7 @@ class Interface:
         else:
             return choice
 
-    def display_subsitute_list(self, page=1):
+    def display_substitute_list(self, page=1):
         subcategory = self._user.chosen_subcategory
         product_name = self._user.chosen_product
         substitutes = self._data.select_substitutes(subcategory, product_name)
@@ -59,9 +53,34 @@ class Interface:
             self.display_subsitute_list(page)
         else:
             return choice
+    
+    def display_product_and_substitute(self, page=1):
+        prod_and_subs = self._data.select_product_and_substitute()
         
+        print('#########################')
+        print('    Poduits substitués')
+        print('#########################')
+        print()
+        print(prod_and_subs)
 
-    def display_help():
+        for indice, value in enumerate(prod_and_subs, start=1):
+            print(indice, value)
+
+        print()
+        print('        <',page,'>')
+
+        action = self.user_choice
+
+        if action == 'n':
+            page += 1
+            self.display_product_and_substitute(page)
+        elif action == 'b' and page > 1:
+            page -= 1
+            self.display_product_and_substitute(page)
+        else:
+            return action
+
+    def display_help(self):
         print('')
 
     def display_subsitutes(self, substitutes):
@@ -78,9 +97,7 @@ class Interface:
             print("    Site   =", url)
             print()
 
-        user_choice = self.user_choice()
-
-        return user_choice
+        return self.user_choice
 
     def display_form(self, table, list, page):
         print('#########################')
@@ -90,18 +107,17 @@ class Interface:
 
         for indice, value in enumerate(list, start=1):
             print(indice, value)
-        
-        print()
-        print('        <', page,'>')
-        action = self.user_choice()
 
-        return action
+        print()
+        print('        <',page,'>')
+
+        return self.user_choice
+
+
 
     def homepage(self):
-        display_homepage = True
-
         print('#########################')
-        print('#        Bienveue !     #')
+        print('#      Bienvenue !      #')
         print('#########################')
         print('')
         print(' Que souhaitez vous faire ?')
@@ -109,73 +125,47 @@ class Interface:
         print(' 2 - Retrouver mes aliments substitués ?')
         print(' 3 - Mettre à jour la base de donnée ?')
 
-        while display_homepage:
-            try:
-                number = int(input())
-                if number == 1:
-                    display_homepage = False
-                elif number == 2:
-                    display_homepage = False
-                elif number == 3:
-                    self._data.update_database()
-                elif number == 'q':
-                    print('Fin du programme ! Au revoir. ')
-                    display_homepage = False
-                else:
-                    print('Tapez 1 ou 2 pour faire un choix.')
-            except ValueError:
-                print('Vous devez saisir un chiffre')
+        return self.user_choice
 
-            return number
-
+    @property
     def user_choice(self):
         action = input('>> ')
-        if action in 'qnab':
-            return action
-        elif action in '1234567890':
-            return int(action)
+        try:
+            if action in 'qnab':
+                return action
+            elif action in '1234567890':
+                return int(action)
+        except:
+            print("Mauvais choix ! Rééssayez ou tapez h pour de l'aide")
 
     def main(self):
         action = self.homepage()
         if action == 1:
-            page_category = 1
-            choice_category = self.display_category_list(page_category)
-            if choice_category == 'n':
-                page_category += 1
-                self.display_category_list(page_category)
-            elif choice_category == 'b':
-                page_category -= 1
-                self.display_category_list(page_category)
-            else:
-                self._user.choose_category(choice_category)
+            choice_category = self.display_category_list()
+            self._user.choose_category(choice_category)
 
             choice_subcategory = self.display_subcategory_list()
             self._user.choose_subcategory(choice_subcategory)
 
             choice_product = self.display_product_list()
-            if choice_product == 'n':
-                self.display_product_list()
-            elif choice_product =='b':
-                self.display_product_list()
-            else:
-                self._user.choose_product(choice_product)
+            self._user.choose_product(choice_product)
 
-            choice_substitute = self.display_subsitute_list()
-            if choice_substitute == 'n':
-                self.display_subsitute_list()
-            elif choice_substitute == 'b':
-                self.display_subsitute_list()
-            else:
-                self._user.choose_subsitute(choice_substitute)
-                self._data.add_substitute(self._user.chosen_substitute, self._user.chosen_product)
-                print('Produits substitué !')
+            choice_substitute = self.display_substitute_list()
+            self._user.choose_subsitute(choice_substitute)
+            self._data.add_substitute(self._user.chosen_substitute, self._user.chosen_product)
+            print('Produits substitué !')
+
+            self.homepage()
+
         elif action == 2:
-            pass
+            self.display_subsitute_list()
         elif action == 3:
-            pass
+            self._data.update_database()
+            print('Mise a jour réussi !')
+            self.homepage()
         else:
             print('Mauvais choix !')
-
+            self.homepage()
 
 inter = Interface()
 inter.main()
