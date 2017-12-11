@@ -23,9 +23,6 @@ class CsvAnalysis:
         self._col += ['nutrition_grade_fr', 'categories_fr']
         self._col += ['main_category_fr']
 
-        # Download csv file
-        self._download_file()
-
         # Read the csv file, and create a dataframe
         self.food_cat = pandas.read_csv(self._file_name,
                                         sep="\t",
@@ -53,10 +50,6 @@ class CsvAnalysis:
         self.food_cat[col] = self.food_cat[col].str.split(',').str.get(-1)
         self.food_cat.sort_values(by='categories_fr')
 
-        # Once the dataframe is created, remove the csv file
-        if self.food_cat is not None:
-            os.remove(self._file_name)
-
     def _download_file(self):
         try:
             urllib.request.urlretrieve(self._url, self._file_name)
@@ -64,7 +57,7 @@ class CsvAnalysis:
             print('Wrong url')
 
     def find_categories_fr(self, category):
-        return self.food_cat[self.food_cat["main_category_fr"] == (category)].sort_values(by='categories_fr')
+        return self.food_cat[self.food_cat["main_category_fr"] == category].sort_values(by='categories_fr')
 
     def get_subcategories(self, category):
         return category.categories_fr.unique()
@@ -87,6 +80,7 @@ class DataToMySql(metaclass=Singleton):
         self._db = records.Database(url)
         self._category_list = ['Snacks sucrés', 'Pâtes à tartiner']
         self._category_list += ['Beurres', 'Desserts', 'Confitures']
+        self._csv = CsvAnalysis()
 
     def _load_categories_to_db(self):
         for category in self._category_list:
@@ -94,10 +88,9 @@ class DataToMySql(metaclass=Singleton):
             self._db.query(sql % category)
       
     def _load_subcategories_to_db(self):
-        csv = CsvAnalysis()
         for category in self._category_list:
-            categories_product = csv.find_categories_fr(category)
-            subcategories = csv.get_subcategories(categories_product)
+            categories_product = self._csv.find_categories_fr(category)
+            subcategories = self._csv.get_subcategories(categories_product)
             sql = 'INSERT INTO Subcategories(subcategory_name, category_id) '
             sql += 'VALUES ("%s", (SELECT id_category '
             sql += 'FROM categories WHERE category_name = "%s"))'
@@ -105,9 +98,8 @@ class DataToMySql(metaclass=Singleton):
                 self._db.query(sql % (subcategory, category))
 
     def _load_products_to_db(self):
-        csv = CsvAnalysis()
         for category in self._category_list:
-            categories_product = csv.find_categories_fr(category)
+            categories_product = self._csv.find_categories_fr(category)
 
             product_list = []
             product_name = categories_product.product_name
@@ -169,7 +161,6 @@ class DataToMySql(metaclass=Singleton):
             for subcategory in subcategories:
                 subcategory_product_list.append(subcategory)
 
-
             ind = 0
             for _ in product_list:
                 sql = 'INSERT INTO Products'
@@ -178,15 +169,19 @@ class DataToMySql(metaclass=Singleton):
                 sql += 'additives,nutrition_score, subcategory_id) '
                 sql += 'VALUES ("%s", "%s", "%s", "%s", "%s", "%s", "%s",'
                 sql += ' "%s", "%s", "%s", "%s",'
-                sql += '(SELECT id_subcategory FROM subcategories'
-                sql += ' WHERE subcategory_name = "%s"))'
+                sql += ' (SELECT id_subcategory FROM subcategories AS s '
+                sql += 'INNER JOIN categories as c ON c.id_category=s.category_id'
+                sql += ' WHERE subcategory_name = "%s" AND category_name= "%s" ))'
                 self._db.query(sql % (product_list[ind], quantity_list[ind], url_list[ind]
                 , packaging_list[ind], brand_list[ind], origin_list[ind], allegerns_list[ind]
                 , traces_list[ind], additives_n_list[ind], additive_list[ind]
-                , nutrition_score_list[ind], subcategory_product_list[ind]))
+                , nutrition_score_list[ind], subcategory_product_list[ind], category))
                 ind += 1
 
     def insert_into_db(self):
         self._load_categories_to_db()
         self._load_subcategories_to_db()
         self._load_products_to_db()
+
+d = DataToMySql()
+d._load_subcategories_to_db()
