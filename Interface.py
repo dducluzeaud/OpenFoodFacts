@@ -1,5 +1,5 @@
-#!/usr/local/bin/python3 
-# coding: utf-8
+#!/usr/local/bin/python3
+# coding: utf8
 
 import records
 from download import DataToMySql
@@ -13,10 +13,12 @@ class Data:
 
         # Check if the databse is not empty
         data = self._db.query('SELECT product_name FROM products LIMIT 1')
-        # If the database is empty, load the database 
-        
+        # If the database is empty, load the database
+
         if data.first() is None:
-            self.update_database()
+            success = self.update_database()
+            if success == False:
+                print("Une erreur s'est produite avec la base de donnée")
 
     def select_categories(self):
         sql = 'SELECT category_name FROM categories '
@@ -36,47 +38,54 @@ class Data:
     def select_products(self, subcategory, page=1, nb_element=10):
         first_element = (nb_element * (page - 1))
         query = 'SELECT product_name from products AS p '
-        query += 'INNER JOIN subcategories AS s ON p.subcategory_id= s.id_subcategory '
-        query += 'WHERE subcategory_name = "%s" LIMIT %i OFFSET %i'
+        query += 'INNER JOIN subcategories AS s '
+        query += 'ON p.subcategory_id= s.id_subcategory '
+        query += 'WHERE subcategory_name = "%s"'
+        query += 'AND product_name_replacement_id is NULL '
+        query += 'LIMIT %i OFFSET %i'
         products = self._db.query(query % (subcategory, nb_element, first_element))
         products_list = self.list_items(products)
         return products_list
 
-    def select_substitutes(self, subcategory, product_name,  page=1, nb_element=10):
-        first_element = (nb_element * (page - 1))
+    def select_substitutes(self, subcat, prod_name,  page=1, nb_element=10):
+        f_element = (nb_element * (page - 1))
         sql = 'SELECT product_name, brand, url_text FROM products AS p '
-        sql += 'INNER JOIN subcategories AS s ON s.subcategory_id= p.subcategory_id'
-        sql += 'WHERE subcategory_name = "%s" AND product_name != "%s" ORDER BY nutrition_score'
-        sql += 'ASC LIMIT %i OFFSET %i'
-        substitutes = self._db.query(sql % (subcategory, product_name, nb_element, first_element))
+        sql += 'INNER JOIN subcategories AS s '
+        sql += 'ON s.id_subcategory=p.subcategory_id '
+        sql += 'WHERE subcategory_name = "%s" AND product_name != "%s" '
+        sql += 'ORDER BY nutrition_score'
+        sql += ' ASC LIMIT %i OFFSET %i'
+        substitutes = self._db.query(sql % (subcat, prod_name, nb_element, f_element))
         return substitutes
 
     def select_product_and_substitute(self, page=1, nb_element=10):
         first_element = (nb_element * (page - 1))
-        sql = 'SELECT p.product_name, r.replacement_product_name FROM products AS p '
-        sql += 'INNER JOIN replacement_product AS r '
-        sql += 'ON p.replacement_product_id = r.product_replacement_id'
-        sql += ' LIMIT %i OFFSET %i'
+        sql = 'SELECT p.product_name, r.product_name_replacement '
+        sql += 'FROM products AS p '
+        sql += 'INNER JOIN replacement_products AS r '
+        sql += 'ON p.product_name_replacement_id = r.id_product_replacement '
+        sql += 'LIMIT %i OFFSET %i'
         products_substitutes = self._db.query(sql % (nb_element, first_element))
         return products_substitutes
 
     def list_items(self, items):
-        list = []
+        cat = []
         for value in items:
-            list.append(value[0])
-        return list
+            cat.append(value[0])
+        return cat
 
     def add_substitute(self, substitute, product):
         # Check if the substitute is not already in the table
-        sub_known = self._db.query('SELECT product_replacement_name FROM Replacement_products')
+        sql = 'SELECT product_name_replacement FROM Replacement_products'
+        sub_known = self._db.query(sql)
         if sub_known != " ":
-            insert = "INSERT INTO Replacement_products(product_name_replacement)"
-            insert += ' VALUES ("%s")'
+            insert = "INSERT INTO Replacement_products"
+            insert += '(product_name_replacement) VALUES ("%s")'
             self._db.query(insert % (substitute))
 
         update = 'UPDATE Products SET product_name_replacement_id = '
-        update += '(SELECT id_product_replacement FROM replacement_product '
-        update += 'WHERE product_name_replacement="%s")'
+        update += '(SELECT id_product_replacement FROM replacement_products '
+        update += 'WHERE product_name_replacement="%s") '
         update += 'WHERE product_name="%s"'
         self._db.query(update % (substitute, product))
 
@@ -88,7 +97,8 @@ class Data:
         self._db.query('DELETE FROM products')
         self._db.query('DELETE FROM replacement_products')
         # Insert new value from internet
-        db.insert_into_db()
+        insert = db.insert_into_db()
+        return insert
 
 
 class UserChoice:
@@ -116,33 +126,26 @@ class UserChoice:
     def chosen_substitute(self):
         return self._chosen_substitute
 
-    def choose_category(self, number):
-        cat_list = self._dt.select_categories()
-        for key, value in enumerate(cat_list, start=1):
-            print(key, value)
+    def choose_category(self, number, *cat):
+        for key, value in enumerate(*cat):
             if key == number:
                 self._chosen_category = value
                 break
 
-    def choose_subcategory(self, number):
-        sub_list = self._dt.select_subcategories(self._chosen_category)
-        for key, value in enumerate(sub_list, start=1):
+    def choose_subcategory(self, number, *subcat):
+        for key, value in enumerate(*subcat):
             if key == number:
                 self._chosen_subcategory = value
                 break
 
-    def choose_product(self, number):
-        prod_list = self._dt.select_products(self._chosen_subcategory)
-        for key, value in enumerate(prod_list, start=1):
+    def choose_product(self, number, *prod):
+        for key, value in enumerate(*prod):
             if key == number:
                 self._chosen_product = value
                 break
 
-    def choose_subsitute(self, number):
-        sub = self._chosen_subcategory
-        prod = self._chosen_product
-        substitutes_list = self._dt.select_substitutes(sub, prod)
-        for key, value in enumerate(substitutes_list, start=1):
+    def choose_substitute(self, number, *sub):
+        for key, value in enumerate(*sub):
             if key == number:
                 self._chosen_substitute = value.product_name
                 break
