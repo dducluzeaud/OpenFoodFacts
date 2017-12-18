@@ -11,10 +11,10 @@ class Interface:
         self._user = UserChoice()
         self._data = Data()
 
-    def display_category_list(self):
+    def display_category_list(self, page=1):
         cat = self._data.select_categories()
         choice_category, page = self.display_form('Categories', cat)
-        if isinstance(choice_category, int):
+        if isinstance(choice_category, int) and len(choice_category) == 1:
             self._user.choose_category(choice_category, cat)
         else:
             print('Mauvais choix')
@@ -101,7 +101,7 @@ class Interface:
         for key, val in enumerate(substitutes):
             prod_name, brand, url = val.product_name, val.brand, val.url_text
 
-            print(' - ', key, ' ', prod_name)
+            print(' - ', key,  prod_name)
             print("       Marque =", brand)
             print("       Site   =", url)
             print()
