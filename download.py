@@ -143,10 +143,10 @@ class DataToMySql(metaclass=Singleton):
             for origin in origins:
                 origin_list.append(origin)
 
-            allegerns_list = []
-            allegerns = categories_product.allergens
-            for allegern in allegerns:
-                allegerns_list.append(allegern)
+            allergens_list = []
+            allergens = categories_product.allergens
+            for allegern in allergens:
+                allergens_list.append(allegern)
 
             traces_list = []
             traces = categories_product.traces_fr
@@ -177,7 +177,7 @@ class DataToMySql(metaclass=Singleton):
             for _ in product_list:
                 sql = 'INSERT INTO Products'
                 sql += '(product_name, quantity, url_text, packaging,'
-                sql += 'brand, origin, allegerns, traces, additives_number, '
+                sql += 'brand, origin, allergens, traces, additives_number, '
                 sql += 'additives,nutrition_score, subcategory_id) '
                 sql += 'VALUES ("%s", "%s", "%s", "%s", "%s", "%s", "%s",'
                 sql += ' "%s", "%s", "%s", "%s",'
@@ -185,7 +185,7 @@ class DataToMySql(metaclass=Singleton):
                 sql += 'INNER JOIN categories as c ON c.id_category=s.category_id'
                 sql += ' WHERE subcategory_name = "%s" AND category_name= "%s" ))'
                 self._db.query(sql % (product_list[ind], quantity_list[ind], url_list[ind]
-                , packaging_list[ind], brand_list[ind], origin_list[ind], allegerns_list[ind]
+                , packaging_list[ind], brand_list[ind], origin_list[ind], allergens_list[ind]
                 , traces_list[ind], additives_n_list[ind], additive_list[ind]
                 , nutrition_score_list[ind], subcategory_product_list[ind], category))
                 ind += 1

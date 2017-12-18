@@ -1,7 +1,7 @@
 delete from subcategories;
 delete from product;
 delete from categories;
-delete from replaced_product;
+delete from replaced_products;
 
 CREATE TABLE Categories (
     id_category SMALLINT(5) UNSIGNED PRIMARY KEY AUTO_INCREMENT ,
@@ -23,20 +23,20 @@ DROP TABLE IF EXISTS Product;
 CREATE TABLE Products (
     id_product SMALLINT(5) UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     product_name VARCHAR(255),
-    quantity VARCHAR(255), 
+    quantity VARCHAR(255),
     url_text VARCHAR(255),
     packaging VARCHAR(255),
     brand VARCHAR(255),
     origin VARCHAR(255),
-    allegerns VARCHAR(255),
+    allergens VARCHAR(255),
     traces VARCHAR(255),
     additives_number VARCHAR(5),
     additives TEXT,
     nutrition_score CHAR(1),
-    product_name_replacement_id SMALLINT(5) UNSIGNED,
+    product_replacement_id SMALLINT(5) UNSIGNED,
     subcategory_id SMALLINT(5) UNSIGNED,
-    KEY fk_replacement_product_id (product_name_replacement_id),
-    CONSTRAINT fk_replacement_product_id FOREIGN KEY (product_name_replacement_id) REFERENCES replacement_products(id_product_replacement)
+    KEY fk_replacement_product_id (product_replacement_id),
+    CONSTRAINT fk_replacement_product_id FOREIGN KEY (product_replacement_id) REFERENCES replacement_products(id_product_replacement)
 )engine=InnoDb
 DEFAULT CHARACTER SET = utf8;
 
@@ -53,10 +53,3 @@ CREATE TABLE Subcategories(
     CONSTRAINT fk_product_id FOREIGN KEY(product_id) REFERENCES Products(id_product)
 )engine=InnoDB
 DEFAULT CHARACTER SET = utf8;
-
-
-
-
-
-
-
