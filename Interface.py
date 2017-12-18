@@ -17,7 +17,7 @@ class Data:
 
         if data.first() is None:
             success = self.update_database()
-            if success == False:
+            if success is False:
                 print("Une erreur s'est produite avec la base de donnée")
 
     def select_categories(self):
@@ -26,26 +26,31 @@ class Data:
         categories_list = self.list_items(categories)
         return categories_list
 
-    def select_subcategories(self, category, page=1, nb_element=10):
-        first_element = (nb_element * (page - 1))
+    def select_subcategories(self, cat, page=1, nb_element=10):
+        f_element = (nb_element * (page - 1))
         query = 'SELECT subcategory_name FROM subcategories AS s '
         query += 'INNER JOIN categories AS c ON s.category_id = c.id_category '
         query += 'WHERE category_name = "%s" LIMIT %i OFFSET %i'
-        subcategories = self._db.query(query % (category, nb_element, first_element))
+        subcategories = self._db.query(query % (cat, nb_element, f_element))
         subcategories_list = self.list_items(subcategories)
         return subcategories_list
 
     def select_products(self, subcategory, page=1, nb_element=10):
-        first_element = (nb_element * (page - 1))
-        query = 'SELECT product_name from products AS p '
+        f_element = (nb_element * (page - 1))
+        query = 'SELECT id_product, product_name from products AS p '
         query += 'INNER JOIN subcategories AS s '
         query += 'ON p.subcategory_id= s.id_subcategory '
         query += 'WHERE subcategory_name = "%s"'
-        query += 'AND product_name_replacement_id is NULL '
+        query += 'AND product_replacement_id is NULL '
         query += 'LIMIT %i OFFSET %i'
-        products = self._db.query(query % (subcategory, nb_element, first_element))
-        products_list = self.list_items(products)
-        return products_list
+        products = self._db.query(query % (subcategory, nb_element, f_element))
+        id_prod = []
+        product_name = []
+        for value in products:
+            id_prod.append(value.id_product)
+            product_name.append(value.product_name)
+
+        return id_prod, product_name
 
     def select_substitutes(self, subcat, prod_name,  page=1, nb_element=10):
         f_element = (nb_element * (page - 1))
@@ -59,14 +64,25 @@ class Data:
         return substitutes
 
     def select_product_and_substitute(self, page=1, nb_element=10):
-        first_element = (nb_element * (page - 1))
+        f_element = (nb_element * (page - 1))
         sql = 'SELECT p.product_name, r.product_name_replacement '
         sql += 'FROM products AS p '
         sql += 'INNER JOIN replacement_products AS r '
-        sql += 'ON p.product_name_replacement_id = r.id_product_replacement '
+        sql += 'ON p.product_replacement_id = r.id_product_replacement '
         sql += 'LIMIT %i OFFSET %i'
-        products_substitutes = self._db.query(sql % (nb_element, first_element))
+        products_substitutes = self._db.query(sql % (nb_element, f_element))
         return products_substitutes
+
+    def select_information_products(self, id_prod, product_name, subcategory):
+        sql = 'SELECT quantity, packaging, origin, allergens, traces, '
+        sql += 'additives_number, additives '
+        sql += 'FROM products AS p '
+        sql += 'INNER JOIN subcategories AS s '
+        sql += 'ON p.subcategory_id= s.id_subcategory '
+        sql += 'WHERE product_name= "%s" AND subcategory_name = "%s" '
+        sql += 'AND id_product = %i'
+        info = self._db.query(sql % (product_name, subcategory, id_prod))
+        return info
 
     def list_items(self, items):
         cat = []
@@ -83,7 +99,7 @@ class Data:
             insert += '(product_name_replacement) VALUES ("%s")'
             self._db.query(insert % (substitute))
 
-        update = 'UPDATE Products SET product_name_replacement_id = '
+        update = 'UPDATE Products SET product_replacement_id = '
         update += '(SELECT id_product_replacement FROM replacement_products '
         update += 'WHERE product_name_replacement="%s") '
         update += 'WHERE product_name="%s"'
