@@ -14,7 +14,7 @@ class Interface:
     def display_category_list(self, page=1):
         cat = self._data.select_categories()
         choice_category, page = self.display_form('Categories', cat)
-        if isinstance(choice_category, int) and len(choice_category) == 1:
+        if isinstance(choice_category, int) and choice_category <= 9:
             self._user.choose_category(choice_category, cat)
         else:
             print('Mauvais choix')
@@ -34,10 +34,13 @@ class Interface:
             self.display_subcategory_list(page)
 
     def display_product_list(self, page=1):
+        print(self._user.choose_product)
         subcategory = self._user.chosen_subcategory
         id_products, products = self._data.select_products(subcategory, page)
         if len(products) == 1:
             print("Il n'y a qu'un seul produit pour cette sous-catégorie.")
+            """ A VOIR AVEC TIM"""
+            self._user._chosen_product = ""
             self.display_subcategory_list()
         else:
             choice, page = self.display_form('Produits', products, page)
@@ -82,6 +85,7 @@ class Interface:
         prod_name = self._user.chosen_product
         substits = self._data.select_substitutes(subcat, prod_name, page)
         choice, page = self.display_subsitutes(substits)
+        print(choice, page)
         if isinstance(choice, str):
             if choice.lower() == 'n' or choice.lower() == 'b':
                 self.display_substitute_list(page)
@@ -108,7 +112,9 @@ class Interface:
         print()
         print('                     <', page, '>')
 
-        return self.choice(substitutes, page)
+        choice, page = self.choice(substitutes, page)
+        print(choice, page)
+        return choice, page
 
     def display_product_and_substitute(self, page=1):
         prod_and_subs = self._data.select_product_and_substitute(page)
@@ -127,7 +133,14 @@ class Interface:
         print()
         print('                     <', page, '>')
 
-        return self.choice(prod_and_subs, page)
+        choice, page = self.choice(prod_and_subs, page)
+        print(len(prod_and_subs))
+        if isinstance(choice, str):
+            if choice.lower() == 'n' or choice.lower() == 'b':
+                self.display_product_and_substitute(page)
+        else:
+            print('Mauvais choix')
+            self.display_substitute_list(page)
 
     def display_help(self):
         print(' - Utiliser les chiffres de votre clavier pour faire un choix.')
@@ -152,11 +165,13 @@ class Interface:
         return self.choice(cat, page)
 
     def choice(self, cat, page):
+
         while True:
             action = input('» ')
-            if action in 'qanbh':
+            if action in 'q a n b h'.split():
                 # Check if there is data in the selection
                 data = len(cat) // 10
+                print(data, 'data', type(data))
                 if action.lower() == 'h':
                     self.display_help()
                 elif action.lower() == 'a':
@@ -164,19 +179,19 @@ class Interface:
                 elif action.lower() == 'q':
                     sys.exit(0)
                 elif page is not None:
-                    if action.lower() in 'nb':
-                        if action.lower() == 'n':
-                            if 1 <= page and data == 1:
-                                page += 1
-                                return action, page
-                            else:
-                                print("Pas de page suivante!")
-                        if action.lower() == 'b':
-                            if 1 < page:
-                                page -= 1
-                                return action, page
-                            else:
-                                print("Pas de page précédente")
+                    if action.lower() == 'n':
+                        if 1 <= page and data != 0:
+                            page += 1
+                            return action, page
+                        else:
+                            print("Pas de page suivante!")
+                    if action.lower() == 'b':
+                        if 1 < page:
+                            page -= 1
+                            print(action, page)
+                            return action, page
+                        else:
+                            print("Pas de page précédente")
             elif 'i' in action and len(action) == 2:
                 choice = ()
                 for ind, letter in enumerate(action, start=1):
@@ -239,7 +254,6 @@ class Interface:
                         print(' Additives = ', additives[num])
                     else:
                         print('             ', additives[num])
-
             if traces != 'nan':
                 print(' Traces = ', traces)
 
@@ -256,7 +270,7 @@ class Interface:
         no_action = True
         while no_action:
             action = input('» ')
-            if action in '123hq':
+            if action in '1 2 3 h q'.split():
                 if action.lower() == 'h':
                     self.display_help()
                 elif action.lower() == 'q':
@@ -284,7 +298,7 @@ class Interface:
             chosen_prod = self._user.chosen_product
             self._data.add_substitute(chosen_sub, chosen_prod)
 
-            msg = "Produits substitué !\n Appuyez sur n'importe quelle touche"
+            msg = " Produits substitué !\n Appuyez sur n'importe quelle touche"
             msg += " pour retournez à la page d'accueil ou q pour quitter"
             choice = input(msg)
 
