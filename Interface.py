@@ -53,6 +53,7 @@ class Data:
         return id_prod, product_name
 
     def select_substitutes(self, subcat, prod_name,  page=1, nb_element=10):
+        print(page, 'select')
         f_element = (nb_element * (page - 1))
         sql = 'SELECT product_name, brand, url_text FROM products AS p '
         sql += 'INNER JOIN subcategories AS s '
@@ -60,8 +61,8 @@ class Data:
         sql += 'WHERE subcategory_name = "%s" AND product_name != "%s" '
         sql += 'ORDER BY nutrition_score'
         sql += ' ASC LIMIT %i OFFSET %i'
-        substitutes = self._db.query(sql % (subcat, prod_name, nb_element, f_element))
-        return substitutes
+        sub = self._db.query(sql % (subcat, prod_name, nb_element, f_element))
+        return sub
 
     def select_product_and_substitute(self, page=1, nb_element=10):
         f_element = (nb_element * (page - 1))
@@ -141,6 +142,10 @@ class UserChoice:
     @property
     def chosen_substitute(self):
         return self._chosen_substitute
+
+    @chosen_subcategory.setter
+    def chosen_subcategory(self, value):
+        self._chosen_category = value
 
     def choose_category(self, number, *cat):
         for key, value in enumerate(*cat):
