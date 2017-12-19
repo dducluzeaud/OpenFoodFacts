@@ -112,9 +112,7 @@ class Interface:
         print()
         print('                     <', page, '>')
 
-        choice, page = self.choice(substitutes, page)
-        print(choice, page)
-        return choice, page
+        return self.choice(substitutes, page)
 
     def display_product_and_substitute(self, page=1):
         prod_and_subs = self._data.select_product_and_substitute(page)
@@ -134,7 +132,6 @@ class Interface:
         print('                     <', page, '>')
 
         choice, page = self.choice(prod_and_subs, page)
-        print(len(prod_and_subs))
         if isinstance(choice, str):
             if choice.lower() == 'n' or choice.lower() == 'b':
                 self.display_product_and_substitute(page)
@@ -144,10 +141,10 @@ class Interface:
 
     def display_help(self):
         print(' - Utiliser les chiffres de votre clavier pour faire un choix.')
-        print(" - Utilisez A pour revenir à la page d'accueil.")
-        print(" - Utilisez N pour aller à la page suivante.")
-        print(" - Utilisez B pour aller à la page précédente.")
-        print(" - Utilisez i + chiffre pour afficher des informations sur le produit.")
+        print(" - A pour revenir à la page d'accueil.")
+        print(" - N pour aller à la page suivante.")
+        print(" - B pour aller à la page précédente.")
+        print(" - I + chiffre pour afficher des informations sur le produit.")
         print(" - Utilisez Q pour quitter le programme.")
 
     def display_form(self, table, cat, page=1):
@@ -160,7 +157,7 @@ class Interface:
             print(ind, value)
 
         print()
-        print('        <',page,'>')
+        print('        <',page ,'>')
 
         return self.choice(cat, page)
 
@@ -168,7 +165,7 @@ class Interface:
 
         while True:
             action = input('» ')
-            if action in 'q a n b h'.split():
+            if action in 'q Q a A n N b B h H'.split():
                 # Check if there is data in the selection
                 data = len(cat) // 10
                 print(data, 'data', type(data))
@@ -192,7 +189,7 @@ class Interface:
                             return action, page
                         else:
                             print("Pas de page précédente")
-            elif 'i' in action and len(action) == 2:
+            elif 'i I'.split() in action and len(action) == 2:
                 choice = ()
                 for ind, letter in enumerate(action, start=1):
                     if ind == 1 and letter == 'i':
@@ -270,7 +267,7 @@ class Interface:
         no_action = True
         while no_action:
             action = input('» ')
-            if action in '1 2 3 h q'.split():
+            if action in '1 2 3 H h Q q'.split():
                 if action.lower() == 'h':
                     self.display_help()
                 elif action.lower() == 'q':
