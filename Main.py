@@ -26,7 +26,7 @@ class Interface:
         choice, page = self.display_form('Sous-Categories', subcat, page)
         if isinstance(choice, str):
             if choice.lower() == 'n' or choice.lower() == 'b':
-                self.display_subcategory_list(page, cat)
+                self.display_subcategory_list(page)
         elif isinstance(choice, int):
             self._user.choose_subcategory(choice, subcat)
         else:
@@ -38,7 +38,7 @@ class Interface:
         subcategory = self._user.chosen_subcategory
         id_products, products = self._data.select_products(subcategory, page)
         if len(products) == 1:
-            return 1
+            return 1, page
         else:
             choice, page = self.display_form('Produits', products, page)
             if isinstance(choice, str):
@@ -89,6 +89,28 @@ class Interface:
                 self.display_substitute_list(page)
         elif isinstance(choice, int):
             self._user.choose_substitute(choice, substits)
+        elif isinstance(choice, tuple):
+            prod = choice[1]
+
+            product = ""
+            id_prod = 0
+            for indice, subs in enumerate(substits):
+                if prod == indice:
+                    product = subs.product_name
+                    id_prod = subs.id_product
+                    break
+            self.display_info(id_prod, product, subcat)
+
+            no_action = True
+            while no_action:
+                action = input('Confirmer ce produit? (O/N) : ')
+                if action.lower() == 'n':
+                    self.display_substitute_list(page)
+                elif action.lower() == 'o':
+                    self._user.choose_substitute(prod, substits)
+                    no_action = False
+                else:
+                    print('O ou N sont les deus choix possibles.')
         else:
             print('Mauvais choix')
             self.display_substitute_list(page)
@@ -102,7 +124,6 @@ class Interface:
 
         for key, val in enumerate(substitutes):
             prod_name, brand, url = val.product_name, val.brand, val.url_text
-
             print(' - ', key,  prod_name)
             print("       Marque =", brand)
             print("       Site   =", url)
@@ -133,20 +154,6 @@ class Interface:
         if isinstance(choice, str):
             if choice.lower() == 'n' or choice.lower() == 'b':
                 self.display_product_and_substitute(page)
-        elif isinstance(choice, tuple):
-            prod = choice[1]
-
-            product = ""
-            for indice, product_name in enumerate(prod_and_subs):
-                if prod == indice:
-                    product = product_name
-                    break
-
-            id_prod = 0
-            for indice, id_product in enumerate(id_products):
-                if indice == prod:
-                    id_prod = id_product
-                    break
         else:
             print('Mauvais choix')
             self.display_substitute_list(page)
@@ -164,10 +171,8 @@ class Interface:
         print(table.center(45))
         print('#############################################')
         print()
-
         for ind, value in enumerate(cat):
             print(ind, value)
-
         print()
         print('                     <', page, '>')
 
@@ -297,37 +302,34 @@ class Interface:
 
         if action == 1:
             self.display_category_list()
-
             self.display_subcategory_list()
-
 
             product_alone = True
             while product_alone:
-                product = self.display_product_list()
-                subcat = self._user.chosen_subcategory
-                if product == 1:
+                product_n = self.display_product_list()
+                if product_n == 1:
+                    subcat = self._user.chosen_subcategory
                     print("Un seul produit pour la sous-catégorie: ", subcat)
                     self.display_subcategory_list()
                 else:
                     product_alone = False
+
+            self.display_substitute_list()
+
+            chosen_sub = self._user.chosen_substitute
+            chosen_prod = self._user.chosen_product
+            self._data.add_substitute(chosen_sub, chosen_prod)
+
+            msg = " Produits substitué !\n Appuyez sur n'importe quelle touche"
+            msg += " pour retournez à la page d'accueil ou q pour quitter"
+            choice = input(msg)
+
+            if choice == "q":
+                sys.exit(0)
             else:
-                self.display_substitute_list()
-                print('4')
-
-                chosen_sub = self._user.chosen_substitute
-                chosen_prod = self._user.chosen_product
-                self._data.add_substitute(chosen_sub, chosen_prod)
-
-                msg = " Produits substitué !\n Appuyez sur n'importe quelle touche"
-                msg += " pour retournez à la page d'accueil ou q pour quitter"
-                choice = input(msg)
-
-                if choice == "q":
-                    sys.exit(0)
-                else:
-                    # Reset UserChoice and display the homepage
-                    self._user.__init__()
-                    self.main()
+                # Reset UserChoice and display the homepage
+                self._user.__init__()
+                self.main()
 
         elif action == 2:
             choice, page = self.display_product_and_substitute()

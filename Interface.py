@@ -53,9 +53,9 @@ class Data:
         return id_prod, product_name
 
     def select_substitutes(self, subcat, prod_name,  page=1, nb_element=10):
-        print(page, 'select')
         f_element = (nb_element * (page - 1))
-        sql = 'SELECT product_name, brand, url_text FROM products AS p '
+        sql = 'SELECT id_product, product_name, brand, url_text '
+        sql += 'FROM products AS p '
         sql += 'INNER JOIN subcategories AS s '
         sql += 'ON s.id_subcategory=p.subcategory_id '
         sql += 'WHERE subcategory_name = "%s" AND product_name != "%s" '
