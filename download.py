@@ -5,7 +5,7 @@ import urllib.error
 import urllib.request
 import pandas
 import records
-
+import os
 
 class CsvAnalysis:
     """ Analysis the csv with pandas dataframe. """
@@ -22,42 +22,39 @@ class CsvAnalysis:
         self._col += ['nutrition_grade_fr', 'categories_fr']
         self._col += ['main_category_fr']
 
-        # Check if the csv is already in the file
-        try:
-            with open(self._file_name, 'r'):
-                pass
-        except FileNotFoundError:
-            self._download_file()
-        finally:
-            # Read the csv file, and create a dataframe
-            self.food_cat = pandas.read_csv(self._file_name,
-                                            sep="\t",
-                                            low_memory=False,
-                                            usecols=self._col,
-                                            encoding="utf8")
+        self.download_file()
 
-            # Remove countries which aren't France
-            mask = self.food_cat['countries_fr']
-            self.food_cat = self.food_cat[mask == 'France']
+        # Read the csv file, and create a dataframe
+        self.food_cat = pandas.read_csv(self._file_name,
+                                        sep="\t",
+                                        low_memory=False,
+                                        usecols=self._col,
+                                        encoding="utf8")
 
-            # Delete column countries_fr
-            del self.food_cat['countries_fr']
+        # Remove countries which aren't France
+        mask = self.food_cat['countries_fr']
+        self.food_cat = self.food_cat[mask == 'France']
 
-            # Remove empty row countries_fr from dataframe
-            columns = ['main_category_fr', 'product_name', 'nutrition_grade_fr']
-            for column in columns:
-                self.food_cat = self.food_cat[~self.food_cat[column].isnull()]
+        # Delete column countries_fr
+        del self.food_cat['countries_fr']
 
-            # Remove empty row from product_name
-            self.food_cat.sort_values(by='categories_fr')
+        # Remove empty row countries_fr from dataframe
+        columns = ['main_category_fr', 'product_name', 'nutrition_grade_fr']
+        for column in columns:
+            self.food_cat = self.food_cat[~self.food_cat[column].isnull()]
 
-            # Select the last value from categories_fr
-            # to use it as a subcategory
-            col = 'categories_fr'
-            self.food_cat[col] = self.food_cat[col].str.split(',').str.get(-1)
-            self.food_cat.sort_values(by='categories_fr')
+        # Remove empty row from product_name
+        self.food_cat.sort_values(by='categories_fr')
 
-    def _download_file(self):
+        # Select the last value from categories_fr
+        # to use it as a subcategory
+        col = 'categories_fr'
+        self.food_cat[col] = self.food_cat[col].str.split(',').str.get(-1)
+        self.food_cat.sort_values(by='categories_fr')
+
+        os.remove('data.csv')
+
+    def download_file(self):
         try:
             urllib.request.urlretrieve(self._url, self._file_name)
         except urllib.error.URLError:
@@ -91,119 +88,134 @@ class DataToMySql(metaclass=Singleton):
         self._csv = CsvAnalysis()
 
     def _load_categories_to_db(self):
+        t = self._db.transaction()
         try:
             for category in self._category_list:
                 sql = 'INSERT INTO Categories(category_name) VALUES ("%s")'
                 self._db.query(sql % category)
         except Exception:
-            ra
+            t.rollback()
+        else:
+            t.commit()
 
     def _load_subcategories_to_db(self):
-        for category in self._category_list:
-            self._db.query('START TRANSACTION')
-            categories_product = self._csv.find_categories_fr(category)
-            subcategories = self._csv.get_subcategories(categories_product)
-            sql = 'INSERT INTO Subcategories(subcategory_name, category_id) '
-            sql += 'VALUES ("%s", (SELECT id_category '
-            sql += 'FROM categories WHERE category_name = "%s"))'
-            for subcategory in subcategories:
-                self._db.query(sql % (subcategory, category))
+        t = self._db.transaction()
+        try:
+            for category in self._category_list:
+                self._db.query('START TRANSACTION')
+                categories_product = self._csv.find_categories_fr(category)
+                subcategories = self._csv.get_subcategories(categories_product)
+                sql = 'INSERT INTO Subcategories'
+                sql += '(subcategory_name, category_id)'
+                sql += ' VALUES ("%s", (SELECT id_category'
+                sql += ' FROM categories WHERE category_name = "%s"))'
+                for subcategory in subcategories:
+                    self._db.query(sql % (subcategory, category))
+        except Exception:
+            t.rollback()
+        else:
+            t.commit()
 
     def _load_products_to_db(self):
-        for category in self._category_list:
-            categories_product = self._csv.find_categories_fr(category)
+        t = self._db.transaction()
+        try:
+            for category in self._category_list:
+                categories_product = self._csv.find_categories_fr(category)
 
-            product_list = []
-            product_name = categories_product.product_name
-            for name in product_name:
-                product_list.append(name)
+                product_list = []
+                product_name = categories_product.product_name
+                for name in product_name:
+                    product_list.append(name)
 
-            quantity_list = []
-            quantities = categories_product.quantity
-            for quantity in quantities:
-                quantity_list.append(quantity)
+                quantity_list = []
+                quantities = categories_product.quantity
+                for quantity in quantities:
+                    quantity_list.append(quantity)
 
-            url_list = []
-            urls = categories_product.url
-            for url in urls:
-                url_list.append(url)
+                url_list = []
+                urls = categories_product.url
+                for url in urls:
+                    url_list.append(url)
 
-            packaging_list = []
-            packaging = categories_product.packaging
-            for package in packaging:
-                packaging_list.append(package)
+                packaging_list = []
+                packaging = categories_product.packaging
+                for package in packaging:
+                    packaging_list.append(package)
 
-            brand_list = []
-            brands = categories_product.brands
-            for brand in brands:
-                brand_list.append(brand)
+                brand_list = []
+                brands = categories_product.brands
+                for brand in brands:
+                    brand_list.append(brand)
 
-            origin_list = []
-            origins = categories_product.origins
-            for origin in origins:
-                origin_list.append(origin)
+                origin_list = []
+                origins = categories_product.origins
+                for origin in origins:
+                    origin_list.append(origin)
 
-            allergens_list = []
-            allergens = categories_product.allergens
-            for allegern in allergens:
-                allergens_list.append(allegern)
+                allergens_list = []
+                allergens = categories_product.allergens
+                for allegern in allergens:
+                    allergens_list.append(allegern)
 
-            traces_list = []
-            traces = categories_product.traces_fr
-            for trace in traces:
-                traces_list.append(trace)
+                traces_list = []
+                traces = categories_product.traces_fr
+                for trace in traces:
+                    traces_list.append(trace)
 
-            additives_n_list = []
-            additives_n = categories_product.additives_n
-            for additive_n in additives_n:
-                additives_n_list.append(additive_n)
+                additives_n_list = []
+                additives_n = categories_product.additives_n
+                for additive_n in additives_n:
+                    additives_n_list.append(additive_n)
 
-            additive_list = []
-            additives = categories_product.additives_fr
-            for additive in additives:
-                additive_list.append(additive)
+                additive_list = []
+                additives = categories_product.additives_fr
+                for additive in additives:
+                    additive_list.append(additive)
 
-            nutrition_score_list = []
-            nutrition_scores = categories_product.nutrition_grade_fr
-            for nutrition_score in nutrition_scores:
-                nutrition_score_list.append(nutrition_score)
+                nutrition_score_list = []
+                nutrition_scores = categories_product.nutrition_grade_fr
+                for nutrition_score in nutrition_scores:
+                    nutrition_score_list.append(nutrition_score)
 
-            subcategory_product_list = []
-            subcategories = categories_product.categories_fr
-            for subcategory in subcategories:
-                subcategory_product_list.append(subcategory)
+                subcategory_product_list = []
+                subcategories = categories_product.categories_fr
+                for subcategory in subcategories:
+                    subcategory_product_list.append(subcategory)
 
-            ind = 0
-            for _ in product_list:
-                sql = 'INSERT INTO Products'
-                sql += '(product_name, quantity, url_text, packaging,'
-                sql += 'brand, origin, allergens, traces, additives_number, '
-                sql += 'additives,nutrition_score, subcategory_id) '
-                sql += 'VALUES ("%s", "%s", "%s", "%s", "%s", "%s", "%s",'
-                sql += ' "%s", "%s", "%s", "%s",'
-                sql += ' (SELECT id_subcategory FROM subcategories AS s '
-                sql += 'INNER JOIN categories as c ON c.id_category=s.category_id'
-                sql += ' WHERE subcategory_name = "%s" AND category_name= "%s" ))'
-                self._db.query(sql % (product_list[ind], quantity_list[ind], url_list[ind]
-                , packaging_list[ind], brand_list[ind], origin_list[ind], allergens_list[ind]
-                , traces_list[ind], additives_n_list[ind], additive_list[ind]
-                , nutrition_score_list[ind], subcategory_product_list[ind], category))
-                ind += 1
+                ind = 0
+                for _ in product_list:
+                    sql = 'INSERT INTO Products'
+                    sql += '(product_name, quantity, url_text, packaging,'
+                    sql += 'brand, origin, allergens,'
+                    sql += ' traces, additives_number, '
+                    sql += 'additives,nutrition_score, subcategory_id) '
+                    sql += 'VALUES ("%s", "%s", "%s", "%s", "%s", "%s", "%s",'
+                    sql += ' "%s", "%s", "%s", "%s",'
+                    sql += ' (SELECT id_subcategory FROM subcategories AS s '
+                    sql += 'INNER JOIN categories as c ON '
+                    sql += 'c.id_category=s.category_id'
+                    sql += ' WHERE subcategory_name = "%s" '
+                    sql += 'AND category_name= "%s"))'
+                    self._db.query(sql % (product_list[ind], quantity_list[ind], url_list[ind], packaging_list[ind], brand_list[ind], origin_list[ind], allergens_list[ind], traces_list[ind], additives_n_list[ind], additive_list[ind], nutrition_score_list[ind], subcategory_product_list[ind], category))
+                    ind += 1
+        except Exception:
+            t.rollback()
+        else:
+            t.commit()
 
     def insert_into_db(self):
         insert = True
+        t = self._db.transaction()
         try:
             self._load_categories_to_db()
             self._load_subcategories_to_db()
             self._load_products_to_db()
-        except Exception as e:
-            print(e, type(e))
-            self._db.query('ROLLBACK')
+        except Exception:
+            t.rollback()
             insert = False
-        finally:
-            self._db.query('COMMIT')
+        else:
+            t.commit()
         return insert
 
-if __name__ == '__main__':
-    d = DataToMySql()
-    d.insert_into_db()
+    if __name__ == '__main__':
+        self.insert_into_db()
