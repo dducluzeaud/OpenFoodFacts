@@ -6,8 +6,15 @@ This project allows you to manage categories of products. The categories are imp
 
 `pip install -r /path/to/requirements.txt`
 
-### And coding style tests
+### Help
 
+ - Use digital key betwen 0 and 9 to make a choice.
+ - Use A to go to the homepage at anytime.
+ - Use N to move to the next page.
+ - Use B to move to the previous page.
+ - Use i + digital key to show information about a product or a substitute.
+ - Use H to display help at anytime.
+ - Use Q to quit.
 
 ## Built With
 
