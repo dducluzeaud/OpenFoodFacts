@@ -8,11 +8,10 @@ CREATE TABLE Categories (
 )engine=InnoDB
 DEFAULT CHARACTER SET = utf8;
 
-CREATE TABLE Replacement_products(
-    id_product_replacement SMALLINT(5) UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    product_id SMALLINT(5)
-)engine=InnoDB
-DEFAULT CHARACTER SET = utf8;
+CREATE TABLE Replacement_products (
+  id_product_replacement smallint(5)NOT NULL PRIMARY KEY ,
+  product_id smallint(5) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 CREATE TABLE Products (
     id_product SMALLINT(5) UNSIGNED AUTO_INCREMENT PRIMARY KEY,
@@ -27,7 +26,8 @@ CREATE TABLE Products (
     additives_number VARCHAR(5),
     additives TEXT,
     nutrition_score CHAR(1),
-    product_replacement_id SMALLINT(5) UNSIGNED,
+    product_replacement_id SMALLINT(5),
+    added_date datetime NOT NULL,
     subcategory_id SMALLINT(5) UNSIGNED,
     KEY fk_replacement_product_id (product_replacement_id),
     CONSTRAINT fk_replacement_product_id FOREIGN KEY (product_replacement_id) REFERENCES replacement_products(id_product_replacement)
