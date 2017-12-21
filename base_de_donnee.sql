@@ -4,21 +4,15 @@ delete from categories;
 delete from replaced_products;
 
 CREATE TABLE Categories (
-    id_category SMALLINT(5) UNSIGNED PRIMARY KEY AUTO_INCREMENT ,
-    category_name VARCHAR(255) NOT NULL
+    category_name VARCHAR(255) NOT NULL PRIMARY KEY
 )engine=InnoDB
 DEFAULT CHARACTER SET = utf8;
-
-DROP TABLE IF EXISTS replacement_product;
 
 CREATE TABLE Replacement_products(
     id_product_replacement SMALLINT(5) UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    product_name_replacement VARCHAR(255)
+    product_id SMALLINT(5)
 )engine=InnoDB
 DEFAULT CHARACTER SET = utf8;
-
-
-DROP TABLE IF EXISTS Product;
 
 CREATE TABLE Products (
     id_product SMALLINT(5) UNSIGNED AUTO_INCREMENT PRIMARY KEY,
@@ -40,16 +34,11 @@ CREATE TABLE Products (
 )engine=InnoDb
 DEFAULT CHARACTER SET = utf8;
 
-DROP TABLE IF EXISTS Subcategory;
-
 CREATE TABLE Subcategories(
     id_subcategory SMALLINT(5) UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     subcategory_name VARCHAR(255),
-    category_id SMALLINT(5) UNSIGNED,
-    product_id SMALLINT(5) UNSIGNED,
-    KEY fk_subcategory_id(category_id),
-    KEY fk_product_id(product_id),
-    CONSTRAINT fk_subcategory_id FOREIGN KEY(category_id) REFERENCES Categories(id_category),
-    CONSTRAINT fk_product_id FOREIGN KEY(product_id) REFERENCES Products(id_product)
+    name_category VARCHAR(255) NOT NULL,
+    KEY fk_name_category(name_category),
+    CONSTRAINT fk_name_category FOREIGN KEY(name_category) REFERENCES Categories(category_name)
 )engine=InnoDB
 DEFAULT CHARACTER SET = utf8;
