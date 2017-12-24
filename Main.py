@@ -33,30 +33,27 @@ class Interface:
     def display_product_list(self, page=1):
         subcategory = self._user.chosen_subcategory
         id_products, products = self._data.select_products(subcategory, page)
-        if len(products) == 1:
-            return 1
-        else:
-            choice, new_page = self.choice('Produits', products, page)
-            if page != new_page:
-                self.display_product_list(new_page)
-            elif isinstance(choice, tuple):
-                if choice[0] == 'i':
-                    id_prod = id_products[choice[1]]
-                    self.display_info(id_prod)
+        choice, new_page = self.choice('Produits', products, page)
+        if page != new_page:
+            self.display_product_list(new_page)
+        elif isinstance(choice, tuple):
+            if choice[0] == 'i':
+                id_prod = id_products[choice[1]]
+                self.display_info(id_prod)
 
-                    no_action = True
-                    while no_action:
-                        action = input('Confirmer ce produit? (O/N) : ')
-                        if action.lower() == 'n':
-                            self.display_product_list(page)
-                            no_action = False
-                        elif action.lower() == 'o':
-                            self._user.chosen_product = id_products[choice[1]]
-                            no_action = False
-                        else:
-                            print('O ou N sont les deux choix possibles.')
-            else:
-                self._user.chosen_product = id_products[choice]
+                no_action = True
+                while no_action:
+                    action = input('Confirmer ce produit? (O/N) : ')
+                    if action.lower() == 'n':
+                        self.display_product_list(page)
+                        no_action = False
+                    elif action.lower() == 'o':
+                        self._user.chosen_product = id_products[choice[1]]
+                        no_action = False
+                    else:
+                        print('O ou N sont les deux choix possibles.')
+        else:
+            self._user.chosen_product = id_products[choice]
 
 
     def display_substitute_list(self, page=1):
@@ -115,30 +112,7 @@ class Interface:
         self.print_n_times(60, '#')
         print()
 
-        if title == 'Produits substitués':
-            for key, val in enumerate(cat):
-                print(key, " produit original = ", val[1])
-                print('   produit de substitution = ', val[0])
-                print()
-            print()
-            print('                     <', page, '>')
-        elif title == 'Produits de substitution':
-            for key, val in enumerate(cat):
-                prod_name = val.product_name
-                brand = val.brand
-                url = val.url_text
-
-                print(' - ', key,  prod_name)
-                print("       Marque =", brand)
-                print("       Site   =", url)
-                print()
-            print()
-            print('                     <', page, '>')
-        else:
-            for ind, value in enumerate(cat):
-                print(ind, value)
-            print()
-            print('                     <', page, '>')
+        self._unpack_data(title, cat, page)
 
         is_prod = False
         if title == 'Produits de substitution' or title == 'Produits':
@@ -204,6 +178,32 @@ class Interface:
             except IndexError:
                 print('Saisie obligatoire')
 
+    def _unpack_data(self, title, cat, page):
+        if title == 'Produits substitués':
+            for key, val in enumerate(cat):
+                print(key, " produit original = ", val[1])
+                print('   produit de substitution = ', val[0])
+                print()
+            print()
+            print('                     <', page, '>')
+        elif title == 'Produits de substitution':
+            for key, val in enumerate(cat):
+                prod_name = val.product_name
+                brand = val.brand
+                url = val.url_text
+
+                print(' - ', key,  prod_name)
+                print("       Marque =", brand)
+                print("       Site   =", url)
+                print()
+            print()
+            print('                     <', page, '>')
+        else:
+            for ind, value in enumerate(cat):
+                print(ind, value)
+            print()
+            print('                     <', page, '>')
+
     def display_info(self, id_prod):
 
         info = self._data.select_information_products(id_prod)
@@ -264,6 +264,7 @@ class Interface:
                 else:
                     try:
                         action = int(action)
+                        no_action = False
                     except ValueError:
                         msg = " Mauvais choix ! Rééssayez ou tapez h"
                         msg += " pour de l'aide"
@@ -282,20 +283,7 @@ class Interface:
         if action == 1:
             self.display_category_list()
             self.display_subcategory_list()
-
-            product_alone = True
-            while product_alone:
-                product_n = self.display_product_list()
-                if product_n == 1:
-                    subcat = self._user.chosen_subcategory
-                    msg = "Un seul produit pour la sous-catégories choisie"
-                    self.display_subcategory_list(msg=msg)
-                else:
-                    product_alone = False
-
             self.display_substitute_list()
-
-
             chosen_prod = self._user.chosen_product
             chosen_sub = self._user.chosen_substitute
             self._data.add_substitute(chosen_prod, chosen_sub)

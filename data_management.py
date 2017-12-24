@@ -31,7 +31,11 @@ class Data:
         query += 'FROM subcategories AS s '
         query += 'INNER JOIN categories AS c '
         query += 'ON s.name_category = c.category_name '
-        query += 'WHERE category_name = "%s" LIMIT %i OFFSET %i'
+        query += 'INNER JOIN products as p '
+        query += 'ON p.subcategory_id = s.id_subcategory '
+        query += 'WHERE category_name = "%s" '
+        query += 'GROUP BY subcategory_id HAVING count(subcategory_id) > 2 '
+        query += 'LIMIT %i OFFSET %i'
         subcategories = self._db.query(query % (cat, nb_element, f_element))
         subcategories_list = self.list_items(subcategories)
         id_sub = []
@@ -117,7 +121,14 @@ class Data:
         sql = 'SELECT product_id FROM Replacement_products '
         sql += 'WHERE product_id = %i'
         sub_known = self._db.query(sql % (replacement_prod_id))
-        if sub_known != " ":
+
+        print(product_id, replacement_prod_id)
+        product_present = False
+        for val in sub_known:
+            if val.product_id == replacement_prod_id:
+                product_present = True
+
+        if not product_present:
             insert = "INSERT INTO Replacement_products"
             insert += '(product_id) VALUES (%i)'
             self._db.query(insert % (replacement_prod_id))
