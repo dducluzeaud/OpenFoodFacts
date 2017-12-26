@@ -4,7 +4,7 @@ This project allows you to manage categories of products. The categories are imp
 
 ### Installing
 
-`pip install -r /path/to/requirements.txt`
+ - pip install -r /path/to/requirements.txt`
 
 ### Help
 
@@ -12,7 +12,8 @@ This project allows you to manage categories of products. The categories are imp
  - Use A to go to the homepage at anytime.
  - Use N to move to the next page.
  - Use B to move to the previous page.
- - Use i + digital key to show information about a product or a substitute.
+ - Use i + digital key to show information about a product or a substitute
+   (example: i 1 to show the product n°1 displayed). If you use that method in the substituted products, you can replace the substituted product by another one.
  - Use H to display help at anytime.
  - Use Q to quit.
 
@@ -20,6 +21,7 @@ This project allows you to manage categories of products. The categories are imp
 
 * [Pandas](http://pandas.pydata.org/index.html) - Python Data Analysis Library
 * [Records](https://github.com/kennethreitz/records) - Records: SQL for Humans™
+* [Python3](https://docs.python.org/3/) - Python 3
 
 ## Authors
 
