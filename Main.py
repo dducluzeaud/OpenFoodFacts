@@ -17,9 +17,6 @@ class Interface:
         self._user.choose_category(choice_category, cat)
 
     def display_subcategory_list(self, page=1, msg=None):
-        if msg is not None:
-            print(msg)
-
         cat = self._user.chosen_category
         id_subs, subcats = self._data.select_subcategories(cat, page)
         choice, new_page = self.choice('Sous-Categories', subcats, page)
@@ -87,22 +84,40 @@ class Interface:
         return self.choice(table, substitutes, page)
 
     def display_product_and_substitute(self, page=1):
-        prod_and_subs = self._data.select_product_and_substitute(page)
+        repl_prod_id, prod_and_subs = self._data.select_product_and_substitute(page)
         title = 'Produits substitués'
         choice, new_page = self.choice(title, prod_and_subs, page)
-        if isinstance(choice, str):
-            if choice.lower() == 'n' or choice.lower() == 'b':
-                self.display_product_and_substitute(page)
-        else:
-            print('Mauvais choix')
-            self.display_substitute_list(page)
+        if page != new_page:
+            self.display_product_and_substitute(new_page)
+        elif isinstance(choice, tuple):
+            if choice[0] == 'i':
+                id_prod = repl_prod_id[choice[1]]
+                self.display_info(id_prod)
+
+                no_action = True
+                while no_action:
+                    action = input('Remplacez ce produit ? (O/N) : ')
+                    if action.lower() == 'n':
+                        self.display_product_and_substitute(page)
+                        no_action = False
+                    elif action.lower() == 'o':
+                        self._user.chosen_product = id_prod
+                        self.replace_sub(id_prod)
+                        return action.lower()
+                        no_action = False
+                    else:
+                        print('O ou N sont les deux choix possibles.')
+
+    def replace_sub(self, id_subst):
+        self._user.chosen_subcategory = self._data.select_subcategory(id_subst)
+
 
     def display_help(self):
         print(' - Utiliser les chiffres de votre clavier pour faire un choix.')
         print(" - A pour revenir à la page d'accueil.")
         print(" - N pour aller à la page suivante.")
         print(" - B pour aller à la page précédente.")
-        print(" - I espacé d'un chiffre pour afficher des informations.")
+        print(" - I espacé d'un chiffre pour afficher des informations d'un produit.")
         print(" - Utilisez Q pour quitter le programme.")
 
 
@@ -114,8 +129,12 @@ class Interface:
 
         self._unpack_data(title, cat, page)
 
+        # Check title to allow to display info about a product
         is_prod = False
-        if title == 'Produits de substitution' or title == 'Produits':
+        title_allowed = 'Produits de substitution,'
+        title_allowed += 'Produits,'
+        title_allowed += 'Produits substitués'
+        if title in title_allowed.split(','):
             is_prod = True
 
         while True:
@@ -156,7 +175,6 @@ class Interface:
                                 print(msg)
                             else:
                                 return (action.split()[0], number, ), page
-
                         except ValueError:
                             msg = 'Veuillez renseigner un chiffre'
                             msg += ' après la lettre i'
@@ -191,10 +209,12 @@ class Interface:
                 prod_name = val.product_name
                 brand = val.brand
                 url = val.url_text
+                nutriscore = val.nutrition_score
 
                 print(' - ', key,  prod_name)
                 print("       Marque =", brand)
                 print("       Site   =", url)
+                print("       Nutriscore =", nutriscore.upper())
                 print()
             print()
             print('                     <', page, '>')
@@ -283,6 +303,7 @@ class Interface:
         if action == 1:
             self.display_category_list()
             self.display_subcategory_list()
+            self.display_product_list()
             self.display_substitute_list()
             chosen_prod = self._user.chosen_product
             chosen_sub = self._user.chosen_substitute
@@ -300,12 +321,25 @@ class Interface:
                 self.main()
 
         elif action == 2:
-            choice, page = self.display_product_and_substitute()
-            if isinstance(choice, str):
-                if choice.lower() == 'n' or choice.lower() == 'b':
-                    self.display_product_and_substitute(page)
-                else:
-                    print()
+
+            action = self.display_product_and_substitute()
+            self.display_substitute_list()
+            chosen_prod = self._user.chosen_product
+            chosen_sub = self._user.chosen_substitute
+            self._data.add_substitute(chosen_prod, chosen_sub)
+
+            msg = " Produits substitué !\n Appuyez sur n'importe quelle touche"
+            msg += " pour retournez à la page d'accueil ou q pour quitter"
+            choice = input(msg)
+
+            if choice == "q":
+                sys.exit(0)
+            else:
+                # Reset UserChoice and display the homepage
+                self._user.__init__()
+                self.main()
+
+
         elif action == 3:
             self._data.update_database()
             print('Mise à jour réussi.')
