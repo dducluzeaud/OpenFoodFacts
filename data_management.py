@@ -2,13 +2,30 @@
 # coding: utf8
 
 import records
+import os
+from configparser import ConfigParser
 from download import DataToMySql, CsvAnalysis
 
 
 class Data:
 
     def __init__(self):
-        _connect = 'mysql+mysqldb://root:MyNewPass@localhost/OpenFoodFacts'
+        config_file = 'config.ini'
+        parser = ConfigParser()
+        parser.read('config.ini')
+
+        section = 'mysql'
+        if section in parser:
+            user = parser.get(section, 'user') + ':'
+            passwd = parser.get(section, 'passwd') + '@'
+            host = parser.get(section, 'host') + '/'
+            db = parser.get(section, 'db')
+d
+        _connect = 'mysql+mysqldb://'
+        _connect += user
+        _connect += passwd
+        _connect += host
+        _connect += db
         self._db = records.Database(_connect)
 
         # Check if the databse is not empty
