@@ -63,8 +63,8 @@ class Data:
 
     def select_substitutes(self, id_sub, id_prod,  page=1, nb_element=10):
         f_element = (nb_element * (page - 1))
-        sql = 'SELECT id_product, product_name, brand, url_text '
-        sql += 'FROM products AS p '
+        sql = 'SELECT id_product, product_name, brand, url_text, '
+        sql += 'nutrition_score FROM products AS p '
         sql += 'INNER JOIN subcategories AS s '
         sql += 'ON s.id_subcategory=p.subcategory_id '
         sql += 'WHERE id_subcategory = %i AND id_product != %i '
@@ -88,19 +88,27 @@ class Data:
 
         prod_sub = ()
         products_and_substitutes = []
+        repl_prod_id = []
         for val in products_substitutes:
+            repl_prod_id.append(val.product_id)
             repl_product = self.replacement_prod_name(val.product_id)
             product_replaced = val.product_name
-            prod_sub = (repl_product[0].product_name , product_replaced)
+            prod_sub = (repl_product , product_replaced)
             products_and_substitutes.append(prod_sub)
 
-        return products_and_substitutes
+        return repl_prod_id, products_and_substitutes
 
     def replacement_prod_name(self, prod_id):
         sql = 'SELECT product_name '
         sql += 'FROM products AS p '
         sql += 'WHERE id_product = %i '
-        return self._db.query(sql % prod_id)
+
+        prod_name = self._db.query(sql % prod_id)
+        product_name = ''
+        for val in prod_name:
+            product_name = val.product_name
+
+        return product_name
 
     def select_information_products(self, id_prod):
         sql = 'SELECT product_name, quantity, packaging, origin, allergens,  '
@@ -122,7 +130,6 @@ class Data:
         sql += 'WHERE product_id = %i'
         sub_known = self._db.query(sql % (replacement_prod_id))
 
-        print(product_id, replacement_prod_id)
         product_present = False
         for val in sub_known:
             if val.product_id == replacement_prod_id:
@@ -139,10 +146,24 @@ class Data:
         update += 'WHERE id_product = %i'
         self._db.query(update % (replacement_prod_id, product_id))
 
+    def select_subcategory(self, id_sub):
+        sql = 'SELECT id_subcategory '
+        sql += 'FROM subcategories AS s '
+        sql += 'INNER JOIN products AS p '
+        sql += 'ON s.id_subcategory = p.subcategory_id '
+        sql += 'WHERE id_product = %i'
+
+        id_subs = self._db.query(sql % (id_sub))
+        id_sub = 0
+        for value in id_subs:
+            id_sub = value.id_subcategory
+
+        return id_sub
+
+
     def update_database(self):
         db = DataToMySql()
-        csv = CsvAnalysis()
-        csv.download_file()
+        CsvAnalysis.download_file()
         # Remove all the data in the database
         self._db.query('DELETE FROM subcategories')
         self._db.query('DELETE FROM categories')
