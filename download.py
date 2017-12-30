@@ -100,10 +100,10 @@ class DataToMySql(metaclass=Singleton):
         for category in self._category_list:
             categories_product = self._csv.find_categories_fr(category)
             subcategories = self._csv.get_subcategories(categories_product)
-            sql = 'INSERT INTO Subcategories'
-            sql += ' (subcategory_name, name_category)'
-            sql += 'VALUES ("%s", (SELECT category_name '
-            sql += 'FROM categories WHERE category_name = "%s"))'
+            sql = """INSERT INTO Subcategories
+                     (subcategory_name, name_category)
+                     VALUES ("%s", (SELECT category_name
+                     FROM categories WHERE category_name = "%s"))"""
             for subcategory in subcategories:
                 self._db.query(sql % (subcategory, category))
 
@@ -174,18 +174,18 @@ class DataToMySql(metaclass=Singleton):
 
             ind = 0
             for _ in product_list:
-                sql = 'INSERT INTO Products'
-                sql += '(product_name, quantity, url_text, packaging,'
-                sql += 'brand, origin, allergens,'
-                sql += ' traces, additives_number, '
-                sql += 'additives, nutrition_score, subcategory_id) '
-                sql += 'VALUES ("%s", "%s", "%s", "%s", "%s", "%s", "%s",'
-                sql += ' "%s", "%s", "%s", "%s",'
-                sql += ' (SELECT id_subcategory FROM subcategories AS s '
-                sql += 'INNER JOIN categories as c ON '
-                sql += 'c.category_name=s.name_category'
-                sql += ' WHERE subcategory_name = "%s" '
-                sql += 'AND category_name= "%s"))'
+                sql = """INSERT INTO Products
+                         (product_name, quantity, url_text, packaging,
+                         brand, origin, allergens,
+                         traces, additives_number,
+                         additives, nutrition_score, subcategory_id)
+                         VALUES ("%s", "%s", "%s", "%s", "%s", "%s", "%s",
+                         "%s", "%s", "%s", "%s",
+                         (SELECT id_subcategory FROM subcategories AS s
+                         INNER JOIN categories as c ON
+                         c.category_name=s.name_category
+                         WHERE subcategory_name = "%s"
+                         AND category_name= "%s"))"""
                 self._db.query(sql % (product_list[ind], quantity_list[ind], url_list[ind], packaging_list[ind], brand_list[ind], origin_list[ind], allergens_list[ind], traces_list[ind], additives_n_list[ind], additive_list[ind], nutrition_score_list[ind], subcategory_product_list[ind], category))
                 ind += 1
 
