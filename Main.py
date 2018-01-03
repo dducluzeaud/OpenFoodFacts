@@ -1,4 +1,4 @@
-#!/usr/local/bin/python3
+#! /usr/bin/env python3
 # coding: utf-8
 import sys
 
@@ -6,25 +6,26 @@ from data_management import UserChoice, Data
 
 
 class Interface:
+    """ Main class connecting data with the user.
+    """
 
     def __init__(self):
         self._user = UserChoice()
         self._data = Data()
 
-    def display_category_list(self, page=1):
+    def display_category_list(self):
         cat = self._data.select_categories()
-        choice_category, new_page = self.choice('Categories', cat)
+        choice_category, new_page = self.choice('Catégories', cat)
         self._user.choose_category(choice_category, cat)
 
-    def display_subcategory_list(self, page=1, msg=None):
+    def display_subcategory_list(self, page=1):
         cat = self._user.chosen_category
         id_subs, subcats = self._data.select_subcategories(cat, page)
-        choice, new_page = self.choice('Sous-Categories', subcats, page)
+        choice, new_page = self.choice('Sous-Catégories', subcats, page)
 
         if new_page != page:
             self.display_subcategory_list(new_page)
         else:
-            id_sub = id_subs[choice]
             self._user.chosen_subcategory = id_subs[choice]
 
     def display_product_list(self, page=1):
@@ -45,13 +46,12 @@ class Interface:
                         self.display_product_list(page)
                         no_action = False
                     elif action.lower() == 'o':
-                        self._user.chosen_product = id_products[choice[1]]
+                        self._user.chosen_product = id_prod
                         no_action = False
                     else:
                         print('O ou N sont les deux choix possibles.')
         else:
             self._user.chosen_product = id_products[choice]
-
 
     def display_substitute_list(self, page=1):
         subcat = self._user.chosen_subcategory
@@ -70,8 +70,7 @@ class Interface:
                 action = input('Confirmer ce produit? (O/N) : ')
                 if action.lower() == 'n':
                     self.display_substitute_list(page)
-                elif action.lower() == 'o':
-                    self._user.chosen_substitue = id_subs[choice[1]]
+                elif action.lower() == 'o':                    self._user.chosen_substitute = id_sub
                     no_action = False
                 else:
                     print('O ou N sont les deus choix possibles.')
@@ -84,26 +83,27 @@ class Interface:
         return self.choice(table, substitutes, page)
 
     def display_product_and_substitute(self, page=1):
-        repl_prod_id, prod_and_subs = self._data.select_product_and_substitute(page)
+        prod_id, repl_sub_id, prod_and_subs = self._data.select_product_and_substitute(page)
         title = 'Produits substitués'
         choice, new_page = self.choice(title, prod_and_subs, page)
         if page != new_page:
             self.display_product_and_substitute(new_page)
         elif isinstance(choice, tuple):
             if choice[0] == 'i':
-                id_prod = repl_prod_id[choice[1]]
-                self.display_info(id_prod)
+                id_subst = repl_sub_id[choice[1]]
+                id_prod = prod_id[choice[1]]
+                self.display_info(id_subst)
 
                 no_action = True
                 while no_action:
-                    action = input('Remplacez ce produit ? (O/N) : ')
+                    action = input('Remplacer ce produit ? (O/N) : ')
                     if action.lower() == 'n':
                         self.display_product_and_substitute(page)
                         no_action = False
                     elif action.lower() == 'o':
                         self._user.chosen_product = id_prod
                         self.replace_sub(id_prod)
-                        return action.lower()
+                        return id_prod
                         no_action = False
                     else:
                         print('O ou N sont les deux choix possibles.')
@@ -122,6 +122,13 @@ class Interface:
 
 
     def choice(self, title, cat, page=1):
+        """
+        :param title: title to display
+        :param cat: list to display
+        :param page: page to display (int)
+        :return: choice allowed char or tuple (i + digit) or int
+                 page (int)
+        """
         self.print_n_times(60, '#')
         print(title.center(60))
         self.print_n_times(60, '#')
@@ -177,10 +184,10 @@ class Interface:
                                 return (action.split()[0], number, ), page
                         except ValueError:
                             msg = 'Veuillez renseigner un chiffre'
-                            msg += ' après la lettre i'
+                            msg += ' après la lettre i.'
                             print(msg)
                     else:
-                        msg = " Le format doit être i + chiffre"
+                        msg = " Le format doit être i + espace + chiffre"
                         print(msg)
                 else:
                     try:
@@ -188,19 +195,24 @@ class Interface:
                         if 0 <= action <= len(cat) - 1:
                             return action, page
                         else:
-                            print("Valeur inexistante.")
+                            print("Valeur inexistante !")
                     except ValueError:
-                        error_msg = "Mauvais choix ! "
-                        error_msg += "Rééssayez ou tapez h pour de l'aide"
-                        print(error_msg)
+                        err_msg = "Mauvais choix ! "
+                        err_msg += "Rééssayez ou tapez H pour afficher l'aide"
+                        print(err_msg)
             except IndexError:
-                print('Saisie obligatoire')
+                print('Saisie obligatoire !')
 
     def _unpack_data(self, title, cat, page):
+        """
+        :param title: title to display
+        :param cat: list to unpack
+        :param page: page to select data
+        """
         if title == 'Produits substitués':
             for key, val in enumerate(cat):
-                print(key, " produit original = ", val[1])
-                print('   produit de substitution = ', val[0])
+                print(key, " Produit original = ", val[1])
+                print('   Produit de substitution = ', val[0])
                 print()
             print()
             print('                     <', page, '>')
@@ -212,9 +224,9 @@ class Interface:
                 nutriscore = val.nutrition_score
 
                 print(' - ', key,  prod_name)
-                print("       Marque =", brand)
-                print("       Site   =", url)
-                print("       Nutriscore =", nutriscore.upper())
+                print("      Marque =", brand)
+                print("      Site   =", url)
+                print("      Nutriscore =", nutriscore.upper())
                 print()
             print()
             print('                     <', page, '>')
@@ -243,20 +255,20 @@ class Interface:
             self.print_n_times(60, '-')
 
             if quantity != 'nan':
-                print(' Quantity = ', quantity)
+                print(' Quantitée = ', quantity)
             if packaging != 'nan':
                 print(' Packaging = ', packaging)
             if origin != 'nan':
-                print(' Origin = ', origin)
+                print(' Origine = ', origin)
             if allergens != 'nan':
-                print(' Allergens = ', allergens)
+                print(' Allergènes = ', allergens)
             if additives_n != '0.0':
                 print(" Nombre d'additifs = ", additives_n)
             if additives != 'nan':
                 additives = additives.split(',')
                 for num, additive in enumerate(additives):
                     if num == 0:
-                        print(' Additives = ', additives[num])
+                        print(' Additifs = ', additives[num])
                     else:
                         print('             ', additives[num])
             if traces != 'nan':
@@ -268,9 +280,9 @@ class Interface:
         self.print_n_times(60, '#')
         print('')
         print(' Que souhaitez vous faire ?')
-        print(' 1 - Subsituez un produit ')
-        print(' 2 - Retrouver mes aliments substitués ?')
-        print(' 3 - Mettre à jour la base de donnée ?')
+        print(' 1 - Subsituer un produit.')
+        print(' 2 - Retrouver mes aliments substitués.')
+        print(' 3 - Mettre à jour la base de données.')
 
         no_action = True
         while no_action:
@@ -286,8 +298,8 @@ class Interface:
                         action = int(action)
                         no_action = False
                     except ValueError:
-                        msg = " Mauvais choix ! Rééssayez ou tapez h"
-                        msg += " pour de l'aide"
+                        msg = " Mauvais choix ! Rééssayez ou tapez H"
+                        msg += " afficher l'aide."
                         print(msg)
                 return action
 
@@ -297,6 +309,7 @@ class Interface:
         print()
 
     def main(self):
+        """ Main function  """
 
         action = self.homepage()
 
@@ -309,9 +322,9 @@ class Interface:
             chosen_sub = self._user.chosen_substitute
             self._data.add_substitute(chosen_prod, chosen_sub)
 
-            msg = " Produits substitué !\n Appuyez sur n'importe quelle touche"
-            msg += " pour retournez à la page d'accueil ou q pour quitter"
-            choice = input(msg)
+            msg = " Produit substitué !\n Appuyez sur n'importe quelle touche"
+            msg += " pour retournez à la page d'accueil ou Q pour quitter !"
+            choice = input(msg + ' ')
 
             if choice == "q":
                 sys.exit(0)
@@ -321,16 +334,15 @@ class Interface:
                 self.main()
 
         elif action == 2:
-
-            action = self.display_product_and_substitute()
+            prod = self.display_product_and_substitute()
             self.display_substitute_list()
-            chosen_prod = self._user.chosen_product
-            chosen_sub = self._user.chosen_substitute
-            self._data.add_substitute(chosen_prod, chosen_sub)
+            old_sub = self._user.chosen_product
+            new_sub = self._user.chosen_substitute
+            self._data.change_substitute(prod, old_sub, new_sub)
 
-            msg = " Produits substitué !\n Appuyez sur n'importe quelle touche"
-            msg += " pour retournez à la page d'accueil ou q pour quitter"
-            choice = input(msg)
+            msg = " Produit substitué !\n Appuyez sur n'importe quelle touche"
+            msg += " pour retournez à la page d'accueil ou Q pour quitter !"
+            choice = input(msg + ' ')
 
             if choice == "q":
                 sys.exit(0)
@@ -339,11 +351,11 @@ class Interface:
                 self._user.__init__()
                 self.main()
 
-
         elif action == 3:
             self._data.update_database()
-            print('Mise à jour réussi.')
+            print('Mise à jour réussie.')
             self.main()
+
 
 if __name__ == '__main__':
     i = Interface()

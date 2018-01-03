@@ -1,10 +1,11 @@
-#!/usr/local/bin/python3
+#! /usr/bin/env python3
 #coding: utf_8
 
 import urllib.error
 import urllib.request
 import pandas
 import records
+from configparser import ConfigParser
 
 
 class CsvAnalysis:
@@ -14,6 +15,12 @@ class CsvAnalysis:
     _url += "/data/fr.openfoodfacts.org.products.csv"
 
     def __init__(self):
+        """ Constructor that read csv file and create a Dataframe from it.
+
+            Select value from France and remove empty row from main_categoy_fr,
+            product_name, and nutrition_grade_fr.
+
+        """
         self.file_name = 'data.csv'
         # Column of interest
         self._col = ['product_name', 'url', 'quantity', 'packaging']
@@ -85,15 +92,33 @@ class Singleton(type):
 class DataToMySql(metaclass=Singleton):
     """ Insert the value from the dataframe to database"""
     def __init__(self):
-        url = 'mysql+mysqldb://root:MyNewPass@localhost/OpenFoodFacts'
-        self._db = records.Database(url)
+        # Config file where the informations are stocked
+        config_file = 'config.ini'
+        parser = ConfigParser()
+        parser.read('config.ini')
+
+        section = 'mysql'
+        if section in parser:
+            # create the url to connect to the database
+            user = parser.get(section, 'user') + ':'
+            passwd = parser.get(section, 'passwd') + '@'
+            host = parser.get(section, 'host') + '/'
+            db = parser.get(section, 'db')
+
+        _connect = 'mysql+mysqldb://'
+        _connect += user
+        _connect += passwd
+        _connect += host
+        _connect += db
+        self._db = records.Database(_connect)
+
         self._category_list = ['Snacks sucrés', 'Pâtes à tartiner']
         self._category_list += ['Beurres', 'Desserts', 'Confitures']
         self._csv = CsvAnalysis()
 
     def _load_categories_to_db(self):
         for category in self._category_list:
-            sql = 'INSERT INTO Categories(category_name) VALUES ("%s")'
+            sql = """INSERT INTO Categories(category_name) VALUES ("%s")"""
             self._db.query(sql % category)
 
     def _load_subcategories_to_db(self):

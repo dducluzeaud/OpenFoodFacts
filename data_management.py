@@ -1,4 +1,4 @@
-#!/usr/local/bin/python3
+#! /usr/bin/env python3
 # coding: utf8
 
 import records
@@ -22,7 +22,7 @@ class Data:
             passwd = parser.get(section, 'passwd') + '@'
             host = parser.get(section, 'host') + '/'
             db = parser.get(section, 'db')
-d
+
         _connect = 'mysql+mysqldb://'
         _connect += user
         _connect += passwd
@@ -36,7 +36,7 @@ d
         if data.first() is None:
             success = self.update_database()
             if success is False:
-                print("Une erreur s'est produite avec la base de donnée")
+                print("Une erreur s'est produite avec la base de données")
 
     def select_categories(self):
         sql = 'SELECT category_name FROM categories '
@@ -67,13 +67,13 @@ d
     def select_products(self, id_sub, page=1, nb_element=10):
         f_element = (nb_element * (page - 1))
         query = """SELECT id_product, product_name from products AS p
-                    INNER JOIN subcategories AS s
-                    ON p.subcategory_id= s.id_subcategory
-                    WHERE id_subcategory = %i
-                    AND product_replacement_id is NULL
-                    LIMIT %i OFFSET %i"""
+                   INNER JOIN subcategories AS s
+                   ON p.subcategory_id= s.id_subcategory
+                   WHERE id_subcategory = %i
+                   AND product_replacement_id is NULL
+                   LIMIT %i OFFSET %i"""
         products = self._db.query(query % (id_sub, nb_element, f_element))
-        id_prod = [
+        id_prod = []
         product_name = []
         for value in products:
             id_prod.append(value.id_product)
@@ -83,7 +83,7 @@ d
     def select_substitutes(self, id_sub, id_prod,  page=1, nb_element=10):
         f_element = (nb_element * (page - 1))
         sql = """SELECT id_product, product_name, brand, url_text,
-                 nutrition_score
+                        nutrition_score
                  FROM products AS p
                  INNER JOIN subcategories AS s
                  ON s.id_subcategory=p.subcategory_id
@@ -98,7 +98,7 @@ d
 
     def select_product_and_substitute(self, page=1, nb_element=10):
         f_element = (nb_element * (page - 1))
-        sql = """SELECT product_id, product_name
+        sql = """SELECT id_product, product_id, product_name
                  FROM products as p
                  INNER JOIN replacement_products as r
                  ON p.product_replacement_id = r.id_product_replacement
@@ -109,14 +109,16 @@ d
         prod_sub = ()
         products_and_substitutes = []
         repl_prod_id = []
+        origin_prod = []
         for val in products_substitutes:
+            origin_prod.append(val.id_product)
             repl_prod_id.append(val.product_id)
             repl_product = self.replacement_prod_name(val.product_id)
             product_replaced = val.product_name
             prod_sub = (repl_product , product_replaced)
             products_and_substitutes.append(prod_sub)
 
-        return repl_prod_id, products_and_substitutes
+        return origin_prod, repl_prod_id, products_and_substitutes
 
     def replacement_prod_name(self, prod_id):
         sql = """SELECT product_name
@@ -132,7 +134,7 @@ d
 
     def select_information_products(self, id_prod):
         sql = """SELECT product_name, quantity, packaging, origin, allergens,
-                 traces, additives_number, additives
+                        traces, additives_number, additives
                  FROM products
                  WHERE id_product = %i"""
         info = self._db.query(sql % (id_prod))
@@ -145,26 +147,44 @@ d
         return cat
 
     def add_substitute(self, product_id, replacement_prod_id):
-        # Check if the substitute is not already in the table
-        sql = """SELECT product_id FROM Replacement_products
-                 WHERE product_id = %i"""
-        sub_known = self._db.query(sql % (replacement_prod_id))
 
-        product_present = False
-        for val in sub_known:
-            if val.product_id == replacement_prod_id:
-                product_present = True
-
-        if not product_present:
-            insert = """INSERT INTO Replacement_products
-                        (product_id) VALUES (%i)"""
-            self._db.query(insert % (replacement_prod_id))
+        self._is_substitute_known(replacement_prod_id)
 
         update = """UPDATE Products SET product_replacement_id =
                     (SELECT id_product_replacement FROM replacement_products
                     WHERE product_id = %i), added_date = NOW()
                     WHERE id_product = %i"""
         self._db.query(update % (replacement_prod_id, product_id))
+
+    def change_substitute(self, id_prod, id_old_sub, id_new_sub):
+        self._is_substitute_known(id_new_sub)
+
+        update = """UPDATE products
+                    SET product_replacement_id =
+                        (SELECT id_product_replacement
+                         FROM replacement_products
+                         WHERE product_id = %i)
+                    WHERE id_product = %i"""
+        self._db.query(update % (id_new_sub, id_prod))
+
+    def _is_substitute_known(self, subs):
+        # Check if the substitute is not already in the table
+        sql = """SELECT product_id
+                 FROM Replacement_products
+                 WHERE product_id = %i"""
+        sub_known = self._db.query(sql % (subs))
+
+        product_present = False
+        for val in sub_known:
+            if val.product_id == subs:
+                product_present = True
+
+        if not product_present:
+            insert = """INSERT INTO Replacement_products
+                        (product_id)
+                        VALUES (%i)"""
+            self._db.query(insert % (subs))
+
 
     def select_subcategory(self, id_sub):
         sql = """SELECT id_subcategory
@@ -190,7 +210,7 @@ d
         self._db.query('DELETE FROM products')
         self._db.query('DELETE FROM replacement_products')
         # Insert new value from internet
-        return db.insert_into_db()
+        db.insert_into_db()
 
 
 class UserChoice:
