@@ -1,7 +1,7 @@
-delete from subcategories;
-delete from product;
-delete from categories;
-delete from replaced_products;
+DROP TABLE subcategories;
+DROP TABLE product;
+DROP TABLE categories;
+DROP TABLE replaced_products;
 
 CREATE TABLE Categories (
     category_name VARCHAR(255) NOT NULL PRIMARY KEY
