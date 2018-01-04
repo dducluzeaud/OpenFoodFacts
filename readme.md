@@ -8,12 +8,12 @@ This project allows you to manage categories of products. The categories are imp
  - Create a database and run the sql script database.sql
  - Create a config file (name it config.ini) to access your database.
 
-   The config file has to be like this:
-        [mysql]
-        host =
-        user =
-        passwd =
-        db =
+   ...The config file has to be like this:
+        ...[mysql]
+        ...host =
+        ...user =
+        ...passwd =
+        ...db =
  - The first time you run the program, the database will load automatically
 
 ### Help
