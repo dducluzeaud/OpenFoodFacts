@@ -6,7 +6,7 @@ This project allows you to manage categories of products. The categories are imp
 
  - pip install -r /path/to/requirements.txt`
  - Create a database and run the sql script database.sql
- - Create a config file (name it config.ini) to access your database. \
+ - Create a config file (name it config.ini) to access your database.
 
    The config file has to be like this:
    ```
