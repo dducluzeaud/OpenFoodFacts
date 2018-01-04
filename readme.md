@@ -15,7 +15,6 @@ This project allows you to manage categories of products. The categories are imp
     user =
     passwd =
     db =
-
  - The first time you run the program, the database will load automatically
 
 ### Help
