@@ -1,13 +1,11 @@
 #! /usr/bin/env python3
 # coding: utf-8
 import sys
-
 from data_management import UserChoice, Data
 
 
 class Interface:
-    """ Main class connecting data with the user.
-    """
+    """ Main class connecting data with the user. """
 
     def __init__(self):
         self._user = UserChoice()
@@ -70,7 +68,9 @@ class Interface:
                 action = input('Confirmer ce produit? (O/N) : ')
                 if action.lower() == 'n':
                     self.display_substitute_list(page)
-                elif action.lower() == 'o':                    self._user.chosen_substitute = id_sub
+                    no_action = False
+                elif action.lower() == 'o':
+                    self._user.chosen_substitute = id_sub
                     no_action = False
                 else:
                     print('O ou N sont les deus choix possibles.')
@@ -111,7 +111,6 @@ class Interface:
     def replace_sub(self, id_subst):
         self._user.chosen_subcategory = self._data.select_subcategory(id_subst)
 
-
     def display_help(self):
         print(' - Utiliser les chiffres de votre clavier pour faire un choix.')
         print(" - A pour revenir à la page d'accueil.")
@@ -119,7 +118,6 @@ class Interface:
         print(" - B pour aller à la page précédente.")
         print(" - I espacé d'un chiffre pour afficher des informations d'un produit.")
         print(" - Utilisez Q pour quitter le programme.")
-
 
     def choice(self, title, cat, page=1):
         """
@@ -176,7 +174,7 @@ class Interface:
                             number = action.split()[1]
                             number = int(number)
 
-                            if number >len(cat):
+                            if number > len(cat):
                                 msg = "Le chiffre ne correspond pas "
                                 msg += "aux chiffres des produits affichés"
                                 print(msg)
@@ -322,8 +320,8 @@ class Interface:
             chosen_sub = self._user.chosen_substitute
             self._data.add_substitute(chosen_prod, chosen_sub)
 
-            msg = " Produit substitué !\n Appuyez sur n'importe quelle touche"
-            msg += " pour retournez à la page d'accueil ou Q pour quitter !"
+            msg = "Produit substitué !\n Appuyez sur n'importe quelle touche"
+            msg += "pour retournez à la page d'accueil ou Q pour quitter !"
             choice = input(msg + ' ')
 
             if choice == "q":
@@ -340,8 +338,8 @@ class Interface:
             new_sub = self._user.chosen_substitute
             self._data.change_substitute(prod, old_sub, new_sub)
 
-            msg = " Produit substitué !\n Appuyez sur n'importe quelle touche"
-            msg += " pour retournez à la page d'accueil ou Q pour quitter !"
+            msg = "Produit substitué !\n Appuyez sur n'importe quelle touche"
+            msg += "pour retournez à la page d'accueil ou Q pour quitter !"
             choice = input(msg + ' ')
 
             if choice == "q":

@@ -1,5 +1,5 @@
-#! /usr/bin/env python3
-#coding: utf_8
+#! /usr/bin/env
+# coding: utf_8
 
 import urllib.error
 import urllib.request
@@ -95,7 +95,7 @@ class DataToMySql(metaclass=Singleton):
         # Config file where the informations are stocked
         config_file = 'config.ini'
         parser = ConfigParser()
-        parser.read('config.ini')
+        parser.read(config_file)
 
         section = 'mysql'
         if section in parser:
@@ -131,7 +131,6 @@ class DataToMySql(metaclass=Singleton):
                      FROM categories WHERE category_name = "%s"))"""
             for subcategory in subcategories:
                 self._db.query(sql % (subcategory, category))
-
 
     def _load_products_to_db(self):
         for category in self._category_list:

@@ -2,7 +2,6 @@
 # coding: utf8
 
 import records
-import os
 from configparser import ConfigParser
 from download import DataToMySql, CsvAnalysis
 
@@ -13,7 +12,7 @@ class Data:
         # Config file where the informations are stocked
         config_file = 'config.ini'
         parser = ConfigParser()
-        parser.read('config.ini')
+        parser.read(config_file)
 
         section = 'mysql'
         if section in parser:
@@ -56,7 +55,7 @@ class Data:
                     GROUP BY subcategory_id HAVING count(subcategory_id) > 2
                     LIMIT %i OFFSET %i"""
         subcategories = self._db.query(query % (cat, nb_element, f_element))
-        subcategories_list = self.list_items(subcategories)
+
         id_sub = []
         sub_name = []
         for value in subcategories:
@@ -90,11 +89,12 @@ class Data:
                  WHERE id_subcategory = %i AND id_product != %i
                  ORDER BY nutrition_score
                  ASC LIMIT %i OFFSET %i"""
-        substitutes = self._db.query(sql % (id_sub, id_prod, nb_element, f_element))
+        subs = self._db.query(sql % (id_sub, id_prod, nb_element, f_element))
+
         id_subs = []
-        for value in substitutes:
+        for value in subs:
             id_subs.append(value.id_product)
-        return id_subs, substitutes
+        return id_subs, subs
 
     def select_product_and_substitute(self, page=1, nb_element=10):
         f_element = (nb_element * (page - 1))
@@ -115,7 +115,7 @@ class Data:
             repl_prod_id.append(val.product_id)
             repl_product = self.replacement_prod_name(val.product_id)
             product_replaced = val.product_name
-            prod_sub = (repl_product , product_replaced)
+            prod_sub = (repl_product, product_replaced)
             products_and_substitutes.append(prod_sub)
 
         return origin_prod, repl_prod_id, products_and_substitutes
@@ -147,7 +147,6 @@ class Data:
         return cat
 
     def add_substitute(self, product_id, replacement_prod_id):
-
         self._is_substitute_known(replacement_prod_id)
 
         update = """UPDATE Products SET product_replacement_id =
@@ -185,7 +184,6 @@ class Data:
                         VALUES (%i)"""
             self._db.query(insert % (subs))
 
-
     def select_subcategory(self, id_sub):
         sql = """SELECT id_subcategory
                  FROM subcategories AS s
@@ -199,7 +197,6 @@ class Data:
             id_sub = value.id_subcategory
 
         return id_sub
-
 
     def update_database(self):
         db = DataToMySql()
@@ -254,4 +251,3 @@ class UserChoice:
         for key, value in enumerate(*cat):
             if key == number:
                 self._chosen_category = value
-                break
