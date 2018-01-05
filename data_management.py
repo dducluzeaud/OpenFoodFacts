@@ -213,7 +213,6 @@ class Data:
 class UserChoice:
 
     def __init__(self):
-        self._dt = Data()
         self._chosen_category = ""
         self._chosen_subcategory = 0
         self._chosen_product = 0
